@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log"
 
-	"github.com/news-ranker/pkg/mq"
+	"github.com/mimir-news/pkg/mq"
 )
 
 type MockMessage struct {

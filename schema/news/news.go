@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/news-ranker/pkg/id"
+	"github.com/mimir-news/pkg/id"
 )
 
 // Article contains article info.
