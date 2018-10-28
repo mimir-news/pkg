@@ -1,4 +1,4 @@
-package mock
+package mqtest 
 
 import (
 	"encoding/json"
