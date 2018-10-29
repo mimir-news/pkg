@@ -26,8 +26,8 @@
 
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/mimir-news/pkg"
+  version = "1.0"
+  name = "github.com/mimir-news/id"
 
 [prune]
   go-tests = true
