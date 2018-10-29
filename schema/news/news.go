@@ -81,19 +81,18 @@ func (s Subject) String() string {
 
 // ScrapeTarget article info needed to scrape and score an article.
 type ScrapeTarget struct {
-	URL            string    `json:"url"`
-	Subjects       []Subject `json:"subjects"`
-	Referer        Referer   `json:"referer"`
-	ReferenceScore float64   `json:"referenceScore"`
-	Title          string    `json:"title"`
-	Body           string    `json:"body"`
-	ArticleID      string    `json:"articleId"`
+	URL       string    `json:"url"`
+	Subjects  []Subject `json:"subjects"`
+	Referer   Referer   `json:"referer"`
+	Title     string    `json:"title"`
+	Body      string    `json:"body"`
+	ArticleID string    `json:"articleId"`
 }
 
 func (s ScrapeTarget) String() string {
 	return fmt.Sprintf(
-		"ScrapeTarget(url=%s subjects=[%s] referer=%s referenceScore=%f title=%s body=%s articleId=%s)",
-		s.URL, joinSubjects(s.Subjects), s.Referer, s.ReferenceScore, s.Title, s.Body, s.ArticleID)
+		"ScrapeTarget(url=%s subjects=[%s] referer=%s title=%s body=%s articleId=%s)",
+		s.URL, joinSubjects(s.Subjects), s.Referer, s.Title, s.Body, s.ArticleID)
 }
 
 // ScrapedArticle result of scraping and scoring an article.
