@@ -2,12 +2,12 @@
 
 
 [[projects]]
-  branch = "master"
   digest = "1:0b8b37af4cb815909beae88e0c0c2f6e439c481ac65e8067ff0d01231bc16ca6"
   name = "github.com/mimir-news/id"
   packages = ["."]
   pruneopts = "UT"
   revision = "b28c9fadf09f101570617727b5de413e0a62afd1"
+  version = "1.0"
 
 [[projects]]
   digest = "1:274f67cb6fed9588ea2521ecdac05a6d62a8c51c074c1fccc6a49a40ba80e925"

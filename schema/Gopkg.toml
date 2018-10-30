@@ -24,11 +24,6 @@
 #   go-tests = true
 #   unused-packages = true
 
-
-[[constraint]]
-  version = "1.0"
-  name = "github.com/mimir-news/id"
-
 [prune]
   go-tests = true
   unused-packages = true
