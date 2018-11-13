@@ -28,7 +28,7 @@ func RequireToken(secret, verificationKey string) gin.HandlerFunc {
 
 		clientID := c.GetHeader(ClientIDKey)
 		if clientID == "" {
-			httputil.SendError(unauthorizedError(), c)
+			httputil.SendError(httputil.ErrUnauthorized(), c)
 			return
 		}
 
@@ -47,11 +47,11 @@ func RequireToken(secret, verificationKey string) gin.HandlerFunc {
 func getAuthToken(c *gin.Context) (string, *httputil.Error) {
 	authHeader := c.GetHeader(AuthHeaderKey)
 	if authHeader == "" {
-		return "", unauthorizedError()
+		return "", httputil.ErrUnauthorized()
 	}
 
 	if !strings.HasPrefix(authHeader, AuthTokenPrefix) {
-		return "", unauthorizedError()
+		return "", httputil.ErrUnauthorized()
 	}
 
 	return strings.Replace(authHeader, AuthTokenPrefix, "", 1), nil
@@ -71,8 +71,4 @@ func GetUserID(c *gin.Context) (string, error) {
 		return "", httputil.NewError("UserID missing", http.StatusInternalServerError)
 	}
 	return userID, nil
-}
-
-func unauthorizedError() *httputil.Error {
-	return httputil.NewError("Unauthorized", http.StatusUnauthorized)
 }
