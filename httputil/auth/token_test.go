@@ -33,7 +33,7 @@ func TestSignAndVerify(t *testing.T) {
 		t.Fatal("Failed to sign token:", err)
 	}
 
-	verifier := auth.NewVerifier(secret, verificationKey, maxAge)
+	verifier := auth.NewVerifier(secret, verificationKey)
 
 	decryptedToken, err := verifier.Verify("test-client", encrypted)
 	if err != nil {
@@ -71,7 +71,7 @@ func TestSignAndVerify_wrongClientID(t *testing.T) {
 		t.Fatal("Failed to sign token:", err)
 	}
 
-	verifier := auth.NewVerifier(secret, verificationKey, maxAge)
+	verifier := auth.NewVerifier(secret, verificationKey)
 
 	_, err = verifier.Verify("wrong-client", encrypted)
 	if err != auth.ErrInvalidToken {
@@ -95,7 +95,7 @@ func TestSignAndVerify_expiredToken(t *testing.T) {
 		t.Fatal("Failed to sign token:", err)
 	}
 
-	verifier := auth.NewVerifier(secret, verificationKey, maxAge)
+	verifier := auth.NewVerifier(secret, verificationKey)
 
 	time.Sleep(20 * time.Millisecond)
 	_, err = verifier.Verify("test-client", encrypted)
@@ -120,19 +120,19 @@ func TestSignAndVerify_wrongVerifier(t *testing.T) {
 		t.Fatal("Failed to sign token:", err)
 	}
 
-	verifier := auth.NewVerifier("other-secret", verificationKey, maxAge)
+	verifier := auth.NewVerifier("other-secret", verificationKey)
 	_, err = verifier.Verify("test-client", encrypted)
 	if err != auth.ErrInvalidToken {
 		t.Error("Should be invalid token, got nil")
 	}
 
-	verifier = auth.NewVerifier(secret, "other-key", maxAge)
+	verifier = auth.NewVerifier(secret, "other-key")
 	_, err = verifier.Verify("test-client", encrypted)
 	if err != auth.ErrInvalidToken {
 		t.Error("Should be invalid token, got nil")
 	}
 
-	verifier = auth.NewVerifier("other-secret", "other-key", maxAge)
+	verifier = auth.NewVerifier("other-secret", "other-key")
 	_, err = verifier.Verify("test-client", encrypted)
 	if err != auth.ErrInvalidToken {
 		t.Error("Should be invalid token, got nil")

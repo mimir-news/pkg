@@ -92,18 +92,16 @@ type Verifier interface {
 }
 
 // NewVerifier creates a new verifier.
-func NewVerifier(secret, verificationKey string, tokenAge time.Duration) Verifier {
+func NewVerifier(secret, verificationKey string) Verifier {
 	return &aesVerifier{
 		secretHash:       hash(secret),
 		verificationHash: hash(verificationKey),
-		tokenAge:         tokenAge,
 	}
 }
 
 type aesVerifier struct {
 	secretHash       string
 	verificationHash string
-	tokenAge         time.Duration
 }
 
 func (v *aesVerifier) Verify(clientID, rawToken string) (Token, error) {
