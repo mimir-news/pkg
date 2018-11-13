@@ -1,6 +1,7 @@
 package httputil
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,15 @@ import (
 const (
 	RequestIDHeader = "X-Request-ID"
 )
+
+// ServerInfo annotates request with server name and version.
+func ServerInfo(name, version string) gin.HandlerFunc {
+	serverInfo := fmt.Sprintf("%s %s", name, version)
+	return func(c *gin.Context) {
+		c.Header("Server", serverInfo)
+		c.Next()
+	}
+}
 
 // RequestID annotates request with unique request id.
 func RequestID() gin.HandlerFunc {

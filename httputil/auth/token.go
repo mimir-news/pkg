@@ -71,21 +71,6 @@ type TokenBody struct {
 	VerificationHash string `json:"verificationHash"`
 }
 
-// Signer interface for issuing and signing auth tokens.
-type Signer interface {
-	Issue(subject, clientID string) (Token, error)
-	Sign(token Token) (string, error)
-}
-
-// NewSigner creates a new signer.
-func NewSigner(secret, verificationKey string, tokenAge time.Duration) Signer {
-	return &aesSigner{
-		secretHash:       hash(secret),
-		verificationHash: hash(verificationKey),
-		tokenAge:         tokenAge,
-	}
-}
-
 // Verifier interface for verifying auth tokens.
 type Verifier interface {
 	Verify(clientID, rawToken string) (Token, error)
@@ -143,22 +128,37 @@ func (v *aesVerifier) checkTokenValidity(token Token, clientID string) error {
 	return nil
 }
 
+// Signer interface for issuing and signing auth tokens.
+type Signer interface {
+	New(subject, clientID string) (string, error)
+}
+
+// NewSigner creates a new signer.
+func NewSigner(secret, verificationKey string, tokenAge time.Duration) Signer {
+	return &aesSigner{
+		secretHash:       hash(secret),
+		verificationHash: hash(verificationKey),
+		tokenAge:         tokenAge,
+	}
+}
+
 type aesSigner struct {
 	secretHash       string
 	verificationHash string
 	tokenAge         time.Duration
 }
 
-func (s *aesSigner) Issue(subject, clientID string) (Token, error) {
+func (s *aesSigner) New(subject, clientID string) (string, error) {
 	if subject == "" {
-		return emptyToken, ErrMissingSubject
+		return "", ErrMissingSubject
 	}
 
 	if clientID == "" {
-		return emptyToken, ErrMissingClientID
+		return "", ErrMissingClientID
 	}
 
-	return s.newToken(subject, clientID), nil
+	token := s.newToken(subject, clientID)
+	return s.sign(token)
 }
 
 func (s *aesSigner) newToken(subject, clientID string) Token {
@@ -176,12 +176,7 @@ func (s *aesSigner) newToken(subject, clientID string) Token {
 	}
 }
 
-func (s *aesSigner) Sign(token Token) (string, error) {
-	if token.Body.VerificationHash != s.verificationHash {
-		fmt.Println(s.verificationHash)
-		return "", ErrInvalidToken
-	}
-
+func (s *aesSigner) sign(token Token) (string, error) {
 	ecryptedToken, err := s.encrypt(token)
 	if err != nil {
 		return "", err

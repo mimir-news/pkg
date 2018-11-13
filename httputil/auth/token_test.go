@@ -4,31 +4,21 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/mimir-news/pkg/httputil/auth"
 )
 
 func TestSignAndVerify(t *testing.T) {
+	subject := "test-subject"
+	clientID := "test-client"
 	secret := "test-secret"
 	verificationKey := "test-key"
-	maxAge := 10 * time.Minute
+	tokenAge := 10 * time.Minute
 
-	// Sha256 hash of "test-key"
-	verificationHash := "62af8704764faf8ea82fc61ce9c4c3908b6cb97d463a634e9e587d7c885db0ef"
-	token := auth.Token{
-		ID:      "a2b7c635-981e-4a3d-a4c9-e4d871a767cb",
-		Version: auth.V1,
-		Body: auth.TokenBody{
-			Subject:          "test-subject",
-			ExpiresAt:        4695667686255857000, // 100 years from 2018-11-13.
-			TokenID:          "a2b7c635-981e-4a3d-a4c9-e4d871a767cb",
-			ClientID:         "test-client",
-			VerificationHash: verificationHash,
-		},
-	}
+	signer := auth.NewSigner(secret, verificationKey, tokenAge)
 
-	signer := auth.NewSigner(secret, verificationKey, maxAge)
-
-	encrypted, err := signer.Sign(token)
+	encrypted, err := signer.New(subject, clientID)
 	if err != nil {
 		t.Fatal("Failed to sign token:", err)
 	}
@@ -40,64 +30,46 @@ func TestSignAndVerify(t *testing.T) {
 		t.Fatal("Failed to verify token:", err)
 	}
 
-	if decryptedToken.ID != token.ID {
-		t.Fatalf("Wrong token ID. Expected=%s Got=%s", token.ID, decryptedToken.ID)
-	}
+	assertV1Token(t, subject, clientID, decryptedToken)
+}
+
+func assertV1Token(t *testing.T, subject, client string, token auth.Token) {
+	assert.Equal(t, auth.V1, token.Version)
+	assert.Equal(t, subject, token.Body.Subject)
+	assert.Equal(t, client, token.Body.ClientID)
 }
 
 func TestSignAndVerify_wrongClientID(t *testing.T) {
+	subject := "test-subject"
+	clientID := "test-client"
 	secret := "test-secret"
 	verificationKey := "test-key"
-	maxAge := 10 * time.Minute
+	tokenAge := 10 * time.Minute
 
-	// Sha256 hash of "test-key"
-	verificationHash := "62af8704764faf8ea82fc61ce9c4c3908b6cb97d463a634e9e587d7c885db0ef"
-	token := auth.Token{
-		ID:      "a2b7c635-981e-4a3d-a4c9-e4d871a767cb",
-		Version: auth.V1,
-		Body: auth.TokenBody{
-			Subject:          "test-subject",
-			ExpiresAt:        4695667686255857000, // 100 years from 2018-11-13.
-			TokenID:          "a2b7c635-981e-4a3d-a4c9-e4d871a767cb",
-			ClientID:         "test-client",
-			VerificationHash: verificationHash,
-		},
-	}
+	signer := auth.NewSigner(secret, verificationKey, tokenAge)
 
-	signer := auth.NewSigner(secret, verificationKey, maxAge)
-
-	encrypted, err := signer.Sign(token)
-	if err != nil {
-		t.Fatal("Failed to sign token:", err)
-	}
+	encrypted, err := signer.New(subject, clientID)
+	assert.Nil(t, err)
 
 	verifier := auth.NewVerifier(secret, verificationKey)
 
 	_, err = verifier.Verify("wrong-client", encrypted)
-	if err != auth.ErrInvalidToken {
-		t.Fatal("Should be invalid token, got nil")
-	}
+	assert.Equal(t, auth.ErrInvalidToken, err)
 }
 
 func TestSignAndVerify_expiredToken(t *testing.T) {
+	subject := "test-subject"
+	clientID := "test-client"
 	secret := "test-secret"
 	verificationKey := "test-key"
-	maxAge := 5 * time.Millisecond
+	tokenAge := -5 * time.Minute
 
-	signer := auth.NewSigner(secret, verificationKey, maxAge)
-	token, err := signer.Issue("test-subject", "test-client")
-	if err != nil {
-		t.Fatal("Failed create token:", err)
-	}
-
-	encrypted, err := signer.Sign(token)
-	if err != nil {
-		t.Fatal("Failed to sign token:", err)
-	}
+	signer := auth.NewSigner(secret, verificationKey, tokenAge)
+	encrypted, err := signer.New(subject, clientID)
+	assert.Nil(t, err)
 
 	verifier := auth.NewVerifier(secret, verificationKey)
 
-	time.Sleep(20 * time.Millisecond)
 	_, err = verifier.Verify("test-client", encrypted)
 	if err != auth.ErrExpiredToken {
 		t.Fatal("Token should be teated as expired", err)
@@ -105,36 +77,25 @@ func TestSignAndVerify_expiredToken(t *testing.T) {
 }
 
 func TestSignAndVerify_wrongVerifier(t *testing.T) {
+	subject := "test-subject"
+	clientID := "test-client"
 	secret := "test-secret"
 	verificationKey := "test-key"
-	maxAge := 10 * time.Minute
+	tokenAge := 10 * time.Minute
 
-	signer := auth.NewSigner(secret, verificationKey, maxAge)
-	token, err := signer.Issue("test-subject", "test-client")
-	if err != nil {
-		t.Fatal("Failed create token:", err)
-	}
-
-	encrypted, err := signer.Sign(token)
-	if err != nil {
-		t.Fatal("Failed to sign token:", err)
-	}
+	signer := auth.NewSigner(secret, verificationKey, tokenAge)
+	encrypted, err := signer.New(subject, clientID)
+	assert.Nil(t, err)
 
 	verifier := auth.NewVerifier("other-secret", verificationKey)
-	_, err = verifier.Verify("test-client", encrypted)
-	if err != auth.ErrInvalidToken {
-		t.Error("Should be invalid token, got nil")
-	}
+	_, err = verifier.Verify(clientID, encrypted)
+	assert.NotNil(t, err)
 
 	verifier = auth.NewVerifier(secret, "other-key")
-	_, err = verifier.Verify("test-client", encrypted)
-	if err != auth.ErrInvalidToken {
-		t.Error("Should be invalid token, got nil")
-	}
+	_, err = verifier.Verify(clientID, encrypted)
+	assert.NotNil(t, err)
 
 	verifier = auth.NewVerifier("other-secret", "other-key")
-	_, err = verifier.Verify("test-client", encrypted)
-	if err != auth.ErrInvalidToken {
-		t.Error("Should be invalid token, got nil")
-	}
+	_, err = verifier.Verify(clientID, encrypted)
+	assert.NotNil(t, err)
 }
