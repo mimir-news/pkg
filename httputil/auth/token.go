@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/mimir-news/pkg/id"
@@ -212,8 +213,13 @@ func hash(value string) string {
 }
 
 func createAESKey(secret, salt string, version Version) []byte {
-	saltedKey := fmt.Sprintf("%s-%s-%s", secret, salt, version)
-	return []byte(hash(saltedKey))[:32]
+	return HashKey(secret, salt, string(version))[:32]
+}
+
+// HashKey hashes a key based on a variable number of components.
+func HashKey(components ...string) []byte {
+	keydata := []byte(strings.Join(components, "-"))
+	return sha256.Sum256(keydata)[:]
 }
 
 func aesEncrypt(body TokenBody, key []byte) (string, error) {
