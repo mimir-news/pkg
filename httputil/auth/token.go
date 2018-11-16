@@ -72,6 +72,13 @@ type TokenBody struct {
 	VerificationHash string `json:"verificationHash"`
 }
 
+// HashKey hashes a key based on a variable number of components.
+func HashKey(components ...string) []byte {
+	keydata := []byte(strings.Join(components, "-"))
+	hash := sha256.Sum256(keydata)
+	return hash[:]
+}
+
 // Verifier interface for verifying auth tokens.
 type Verifier interface {
 	Verify(clientID, rawToken string) (Token, error)
@@ -214,12 +221,6 @@ func hash(value string) string {
 
 func createAESKey(secret, salt string, version Version) []byte {
 	return HashKey(secret, salt, string(version))[:32]
-}
-
-// HashKey hashes a key based on a variable number of components.
-func HashKey(components ...string) []byte {
-	keydata := []byte(strings.Join(components, "-"))
-	return sha256.Sum256(keydata)[:]
 }
 
 func aesEncrypt(body TokenBody, key []byte) (string, error) {
