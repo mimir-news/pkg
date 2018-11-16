@@ -4,14 +4,11 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/mimir-news/pkg/id"
@@ -72,13 +69,6 @@ type TokenBody struct {
 	VerificationHash string `json:"verificationHash"`
 }
 
-// HashKey hashes a key based on a variable number of components.
-func HashKey(components ...string) []byte {
-	keydata := []byte(strings.Join(components, "-"))
-	hash := sha256.Sum256(keydata)
-	return hash[:]
-}
-
 // Verifier interface for verifying auth tokens.
 type Verifier interface {
 	Verify(clientID, rawToken string) (Token, error)
@@ -86,9 +76,13 @@ type Verifier interface {
 
 // NewVerifier creates a new verifier.
 func NewVerifier(secret, verificationKey string) Verifier {
+	hasher := Sha256Hasher{Uppercase: false}
+	hashedSecret, _ := hasher.Hash(secret)
+	hashedKey, _ := hasher.Hash(verificationKey)
+
 	return &aesVerifier{
-		secretHash:       hash(secret),
-		verificationHash: hash(verificationKey),
+		secretHash:       hashedSecret,
+		verificationHash: hashedKey,
 	}
 }
 
@@ -143,9 +137,13 @@ type Signer interface {
 
 // NewSigner creates a new signer.
 func NewSigner(secret, verificationKey string, tokenAge time.Duration) Signer {
+	hasher := Sha256Hasher{Uppercase: false}
+	hashedSecret, _ := hasher.Hash(secret)
+	hashedKey, _ := hasher.Hash(verificationKey)
+
 	return &aesSigner{
-		secretHash:       hash(secret),
-		verificationHash: hash(verificationKey),
+		secretHash:       hashedSecret,
+		verificationHash: hashedKey,
 		tokenAge:         tokenAge,
 	}
 }
@@ -213,10 +211,6 @@ func (s *aesSigner) encrypt(token Token) (EcryptedToken, error) {
 		Body:    encryptedBody,
 	}
 	return encryptedToken, nil
-}
-
-func hash(value string) string {
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(value)))
 }
 
 func createAESKey(secret, salt string, version Version) []byte {

@@ -1,7 +1,6 @@
 package auth_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -99,18 +98,4 @@ func TestSignAndVerify_wrongVerifier(t *testing.T) {
 	verifier = auth.NewVerifier("other-secret", "other-key")
 	_, err = verifier.Verify(clientID, encrypted)
 	assert.NotNil(t, err)
-}
-
-func TestHashKey(t *testing.T) {
-	assert := assert.New(t)
-
-	expectedHashStr := "cbd2be7b96f770a0326948ebd158cf539fab0627e8adbddc97f7a65c6a8ae59a" // Sha256 hash of "a-b-c"
-
-	hash := auth.HashKey("a", "b", "c")
-	assert.Len(hash, 32)
-	assert.Equal(expectedHashStr, fmt.Sprintf("%x", hash))
-
-	singleHash := auth.HashKey("a-b-c")
-	assert.Len(singleHash, 32)
-	assert.Equal(expectedHashStr, fmt.Sprintf("%x", singleHash))
 }
