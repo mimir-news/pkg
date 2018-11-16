@@ -16,7 +16,7 @@ func TestBryptHasher(t *testing.T) {
 	expectedHashStr := "$2a$10$JHQueqewjWFUIjpnmYehMurX5ZxRVA1L6dIQR5fVJEtXXFyCe2SGW" // Bcrypt hash of "a-b-c"
 
 	var hasher auth.Hasher = &auth.BcryptHasher{
-		Cost: bcrypt.DefaultCost,
+		Cost: bcrypt.MinCost,
 	}
 	hash, err := hasher.Hash("a-b-c")
 	assert.Nil(err)

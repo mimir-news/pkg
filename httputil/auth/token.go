@@ -1,13 +1,9 @@
 package auth
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"io"
 	"log"
 	"time"
 
@@ -81,12 +77,14 @@ func NewVerifier(secret, verificationKey string) Verifier {
 	hashedKey, _ := hasher.Hash(verificationKey)
 
 	return &aesVerifier{
+		decryptor:        NewAESDecryptor(),
 		secretHash:       hashedSecret,
 		verificationHash: hashedKey,
 	}
 }
 
 type aesVerifier struct {
+	decryptor        *AESDecryptor
 	secretHash       string
 	verificationHash string
 }
@@ -98,7 +96,7 @@ func (v *aesVerifier) Verify(clientID, rawToken string) (Token, error) {
 	}
 
 	key := createAESKey(v.secretHash, encryptedToken.ID, encryptedToken.Version)
-	tokenBody, err := aesDecrypt(encryptedToken.Body, key)
+	tokenBody, err := v.aesDecrypt(encryptedToken.Body, key)
 	if err != nil {
 		return emptyToken, ErrInvalidToken
 	}
@@ -130,6 +128,22 @@ func (v *aesVerifier) checkTokenValidity(token Token, clientID string) error {
 	return nil
 }
 
+func (v *aesVerifier) aesDecrypt(encryptedBody string, key []byte) (TokenBody, error) {
+	ciphertext, err := base64.StdEncoding.DecodeString(encryptedBody)
+	if err != nil {
+		return emptyTokenBody, err
+	}
+
+	plaintext, err := v.decryptor.Decrypt(key, ciphertext)
+	if err != nil {
+		return emptyTokenBody, err
+	}
+
+	var tokenBody TokenBody
+	err = json.Unmarshal(plaintext, &tokenBody)
+	return tokenBody, err
+}
+
 // Signer interface for issuing and signing auth tokens.
 type Signer interface {
 	New(subject, clientID string) (string, error)
@@ -142,6 +156,7 @@ func NewSigner(secret, verificationKey string, tokenAge time.Duration) Signer {
 	hashedKey, _ := hasher.Hash(verificationKey)
 
 	return &aesSigner{
+		encryptor:        NewAESEncryptor(),
 		secretHash:       hashedSecret,
 		verificationHash: hashedKey,
 		tokenAge:         tokenAge,
@@ -149,6 +164,7 @@ func NewSigner(secret, verificationKey string, tokenAge time.Duration) Signer {
 }
 
 type aesSigner struct {
+	encryptor        *AESEncryptor
 	secretHash       string
 	verificationHash string
 	tokenAge         time.Duration
@@ -200,7 +216,7 @@ func (s *aesSigner) sign(token Token) (string, error) {
 func (s *aesSigner) encrypt(token Token) (EcryptedToken, error) {
 	key := createAESKey(s.secretHash, token.ID, token.Version)
 
-	encryptedBody, err := aesEncrypt(token.Body, key)
+	encryptedBody, err := s.aesEncrypt(token.Body, key)
 	if err != nil {
 		return emptyEncryptedToken, err
 	}
@@ -213,63 +229,21 @@ func (s *aesSigner) encrypt(token Token) (EcryptedToken, error) {
 	return encryptedToken, nil
 }
 
-func createAESKey(secret, salt string, version Version) []byte {
-	return HashKey(secret, salt, string(version))[:32]
-}
-
-func aesEncrypt(body TokenBody, key []byte) (string, error) {
+func (s *aesSigner) aesEncrypt(body TokenBody, key []byte) (string, error) {
 	plaintext, err := json.Marshal(body)
 	if err != nil {
 		return "", err
 	}
 
-	gcm, err := createGCMChipher(key)
+	ciphertext, err := s.encryptor.Encrypt(key, plaintext)
 	if err != nil {
 		return "", err
 	}
-
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", err
-	}
-
-	ciphertext := gcm.Seal(nonce, nonce, plaintext, nil)
 	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
-func aesDecrypt(encryptedBody string, key []byte) (TokenBody, error) {
-	ciphertext, err := base64.StdEncoding.DecodeString(encryptedBody)
-	if err != nil {
-		return emptyTokenBody, err
-	}
-
-	gcm, err := createGCMChipher(key)
-	if err != nil {
-		return emptyTokenBody, err
-	}
-
-	nonceSize := gcm.NonceSize()
-	if len(ciphertext) < nonceSize {
-		return emptyTokenBody, errors.New("ciphertext too short")
-	}
-
-	plaintext, err := gcm.Open(nil, ciphertext[:nonceSize], ciphertext[nonceSize:], nil)
-	if err != nil {
-		return emptyTokenBody, err
-	}
-
-	var tokenBody TokenBody
-	err = json.Unmarshal(plaintext, &tokenBody)
-	return tokenBody, err
-}
-
-func createGCMChipher(key []byte) (cipher.AEAD, error) {
-	c, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-
-	return cipher.NewGCM(c)
+func createAESKey(secret, salt string, version Version) []byte {
+	return HashKey(secret, salt, string(version))
 }
 
 func decodeEncryptedToken(rawToken string) (EcryptedToken, error) {
