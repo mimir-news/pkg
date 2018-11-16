@@ -28,12 +28,12 @@ func TestBryptHasher(t *testing.T) {
 	assert.Nil(err)
 }
 
-func TestSha256Hasher(t *testing.T) {
+func TestSha3Hasher(t *testing.T) {
 	assert := assert.New(t)
 
-	expectedHashStr := "cbd2be7b96f770a0326948ebd158cf539fab0627e8adbddc97f7a65c6a8ae59a" // Sha256 hash of "a-b-c"
+	expectedHashStr := "345f7c214e36251e44ca46dbaf71018fa68eb7131554c393f795f62ec27aed25" // SHA-3 256 sum of "a-b-c"
 
-	var hasher auth.Hasher = &auth.Sha256Hasher{
+	var hasher auth.Hasher = &auth.Sha3Hasher{
 		Uppercase: false,
 	}
 	hash, err := hasher.Hash("a-b-c")
@@ -41,7 +41,7 @@ func TestSha256Hasher(t *testing.T) {
 	assert.Equal(expectedHashStr, hash)
 	assert.Nil(hasher.Verify("a-b-c", expectedHashStr))
 
-	hasher = &auth.Sha256Hasher{
+	hasher = &auth.Sha3Hasher{
 		Uppercase: true,
 	}
 	upperCaseHash, err := hasher.Hash("a-b-c")
@@ -53,7 +53,7 @@ func TestSha256Hasher(t *testing.T) {
 func TestHashKey(t *testing.T) {
 	assert := assert.New(t)
 
-	expectedHashStr := "cbd2be7b96f770a0326948ebd158cf539fab0627e8adbddc97f7a65c6a8ae59a" // Sha256 hash of "a-b-c"
+	expectedHashStr := "345f7c214e36251e44ca46dbaf71018fa68eb7131554c393f795f62ec27aed25" // SHA-3 256 sum of "a-b-c"
 
 	hash := auth.HashKey("a", "b", "c")
 	assert.Len(hash, 32)

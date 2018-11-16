@@ -112,11 +112,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1ecf2a49df33be51e757d0033d5d51d5f784f35f68e5a38f797b2d3f03357d71"
+  digest = "1:63a14e646d94e2ae184411654ca4448992d21ca5b037c46c33c1e56d077e9fd0"
   name = "golang.org/x/crypto"
   packages = [
     "bcrypt",
     "blowfish",
+    "sha3",
   ]
   pruneopts = "UT"
   revision = "3d3f9f413869b949e48070b5bc593aa22cc2b8f2"
@@ -153,6 +154,7 @@
     "github.com/mimir-news/pkg/id",
     "github.com/stretchr/testify/assert",
     "golang.org/x/crypto/bcrypt",
+    "golang.org/x/crypto/sha3",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

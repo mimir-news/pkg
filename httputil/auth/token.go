@@ -72,7 +72,7 @@ type Verifier interface {
 
 // NewVerifier creates a new verifier.
 func NewVerifier(secret, verificationKey string) Verifier {
-	hasher := Sha256Hasher{Uppercase: false}
+	hasher := Sha3Hasher{Uppercase: false}
 	hashedSecret, _ := hasher.Hash(secret)
 	hashedKey, _ := hasher.Hash(verificationKey)
 
@@ -151,7 +151,7 @@ type Signer interface {
 
 // NewSigner creates a new signer.
 func NewSigner(secret, verificationKey string, tokenAge time.Duration) Signer {
-	hasher := Sha256Hasher{Uppercase: false}
+	hasher := Sha3Hasher{Uppercase: false}
 	hashedSecret, _ := hasher.Hash(secret)
 	hashedKey, _ := hasher.Hash(verificationKey)
 
