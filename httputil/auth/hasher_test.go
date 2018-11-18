@@ -135,3 +135,17 @@ func TestHashKey(t *testing.T) {
 	assert.Len(singleHash, 32)
 	assert.Equal(expectedHashStr, fmt.Sprintf("%x", singleHash))
 }
+
+func TestGenerateSalt(t *testing.T) {
+	assert := assert.New(t)
+
+	previousSalt := ""
+
+	for i := 0; i < 100; i++ {
+		testCase := fmt.Sprintf("TestGenerateSalt: %d", i+1)
+		salt, err := auth.GenerateSalt()
+		assert.Nil(err)
+		assert.NotEqual(previousSalt, salt, testCase)
+		previousSalt = salt
+	}
+}

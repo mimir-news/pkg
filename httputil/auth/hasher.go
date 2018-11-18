@@ -1,13 +1,19 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/sha3"
 )
+
+// DefualtBcryptCost default cost factor for bcrypt hashing.
+const DefualtBcryptCost = 12
 
 // Common errors related to hashing.
 var (
@@ -21,6 +27,17 @@ func HashKey(components ...string) []byte {
 	return hash[:]
 }
 
+// GenerateSalt creates random salt and returns it as a base64 encoded stirng.
+func GenerateSalt() (string, error) {
+	nonce := make([]byte, 64)
+	_, err := io.ReadFull(rand.Reader, nonce)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(nonce), nil
+}
+
 // Hasher interface for hashing string values and
 // verifying if a string would hash to a specific hash.
 type Hasher interface {
@@ -28,41 +45,40 @@ type Hasher interface {
 	Verify(data, hash string) error
 }
 
-// NewHasher returns a new SaltedBcryptHasher with a given key.
+// NewHasher returns a new PepperBcryptHasher with a given key.
 func NewHasher(key string) Hasher {
 	hashedKey := HashKey(key)
-	// scrambledKey := scrambleByKey(hashedKey, []byte(key))
 
-	return &SaltedBcryptHasher{
-		salt: hashedKey, //HashKey(scrambledKey),
+	return &PepperBcryptHasher{
+		pepper: string(hashedKey),
 		bcryptHasher: &BcryptHasher{
-			Cost: bcrypt.DefaultCost,
+			Cost: DefualtBcryptCost,
 		},
 	}
 }
 
-// SaltedBcryptHasher implementation of Hasher that computes hashes
-// using bcrypt with a global secret salt that is determnistlicy
-// scrambled based on the data that should be hashed.
-type SaltedBcryptHasher struct {
-	salt         []byte
+// PepperBcryptHasher implementation of Hasher that computes hashes
+// using bcrypt with a global secret pepper.
+type PepperBcryptHasher struct {
+	pepper       string
 	bcryptHasher *BcryptHasher
 }
 
 // Hash salts the supplied data and hashes it.
-func (h *SaltedBcryptHasher) Hash(data string) (string, error) {
-	saltedData := h.saltData(data)
+func (h *PepperBcryptHasher) Hash(data string) (string, error) {
+	saltedData := h.pepperData(data)
 	return h.bcryptHasher.Hash(saltedData)
 }
 
 // Verify verifies that the salted data matches the supplied hash.
-func (h *SaltedBcryptHasher) Verify(data, hash string) error {
-	saltedData := h.saltData(data)
+func (h *PepperBcryptHasher) Verify(data, hash string) error {
+	saltedData := h.pepperData(data)
 	return h.bcryptHasher.Verify(saltedData, hash)
 }
 
-func (h *SaltedBcryptHasher) saltData(data string) string {
-	return scrambleByKey(h.salt, []byte(data))
+func (h *PepperBcryptHasher) pepperData(data string) string {
+	pepperedData := HashKey(h.pepper, data)
+	return string(pepperedData)
 }
 
 // BcryptHasher implementation of Hasher that computes hashes using bcrypt.
@@ -114,34 +130,4 @@ func (h *Sha3Hasher) Verify(data, hash string) error {
 		return ErrHashDoesNotMatch
 	}
 	return nil
-}
-
-func scrambleByKey(key, data []byte) string {
-	long, short := orderByLength(key, data)
-	shortLen := len(short)
-	if shortLen == 0 {
-		return ""
-	}
-
-	scrambled := make([]byte, 0, len(long))
-	for i, longByte := range long {
-		shortIndex := i % shortLen
-		shortByte := short[shortIndex]
-
-		scrambledByte := addBytesWithMultiplier(i, longByte, shortByte)
-		scrambled = append(scrambled, scrambledByte)
-	}
-	return string(scrambled)
-}
-
-func addBytesWithMultiplier(c int, x, y byte) byte {
-	byteNumber := ((c+1)*int(x) + int(y)) % 255
-	return byte(byteNumber)
-}
-
-func orderByLength(first, second []byte) ([]byte, []byte) {
-	if len(first) >= len(second) {
-		return first, second
-	}
-	return second, first
 }
