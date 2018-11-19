@@ -47,13 +47,15 @@ type Hasher interface {
 
 // NewHasher returns a new PepperBcryptHasher with a given key.
 func NewHasher(key string) Hasher {
-	hashedKey := HashKey(key)
+	sha3Hasher := &Sha3Hasher{Uppercase: false}
+	hashedKey, _ := sha3Hasher.Hash(key)
 
 	return &PepperBcryptHasher{
-		pepper: string(hashedKey),
+		pepper: hashedKey,
 		bcryptHasher: &BcryptHasher{
 			Cost: DefualtBcryptCost,
 		},
+		sha3Hasher: sha3Hasher,
 	}
 }
 
@@ -62,23 +64,25 @@ func NewHasher(key string) Hasher {
 type PepperBcryptHasher struct {
 	pepper       string
 	bcryptHasher *BcryptHasher
+	sha3Hasher   *Sha3Hasher
 }
 
 // Hash salts the supplied data and hashes it.
 func (h *PepperBcryptHasher) Hash(data string) (string, error) {
-	saltedData := h.pepperData(data)
-	return h.bcryptHasher.Hash(saltedData)
+	pepperedData := h.pepperData(data)
+	return h.bcryptHasher.Hash(pepperedData)
 }
 
 // Verify verifies that the salted data matches the supplied hash.
 func (h *PepperBcryptHasher) Verify(data, hash string) error {
-	saltedData := h.pepperData(data)
-	return h.bcryptHasher.Verify(saltedData, hash)
+	pepperedData := h.pepperData(data)
+	return h.bcryptHasher.Verify(pepperedData, hash)
 }
 
 func (h *PepperBcryptHasher) pepperData(data string) string {
-	pepperedData := HashKey(h.pepper, data)
-	return string(pepperedData)
+	pepperedData := fmt.Sprintf("%s-%s", h.pepper, data)
+	pepperedHash, _ := h.sha3Hasher.Hash(pepperedData)
+	return pepperedHash
 }
 
 // BcryptHasher implementation of Hasher that computes hashes using bcrypt.
