@@ -2,12 +2,44 @@
 
 
 [[projects]]
-  digest = "1:c8ad4ba32ae8b71ef2bf5e1bad402aeb99ce77a1240f9b684db8b1ff5353e7ab"
+  digest = "1:ba4a13c1846fc9df263e43e61854e2ce530eadfdc10a7ea394cc3b76b42ddaed"
+  name = "github.com/gobuffalo/envy"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "b29bf6b8134f3398b9333ba1893c58620152edb0"
+  version = "v1.6.9"
+
+[[projects]]
+  branch = "master"
+  digest = "1:b73defe35e1810e7b7960c9515a99063c004751c11eb80432c987fb983cb7de4"
+  name = "github.com/gobuffalo/packd"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "f25c5d2471d797647acdd6179365a5c4a88cf534"
+
+[[projects]]
+  digest = "1:6f92eb0109fc0b899e1b3ee5b27cfe77b3a09e096e83fa5551f52abd26ba628d"
   name = "github.com/gobuffalo/packr"
   packages = ["."]
   pruneopts = "UT"
-  revision = "5a2cbb54c4e7d482e3f518c56f1f86f133d5204f"
-  version = "v1.13.7"
+  revision = "7c2dcc2885cf30cb864d25bb1a5f50e0f5c99acd"
+  version = "v1.21.3"
+
+[[projects]]
+  digest = "1:ecd9aa82687cf31d1585d4ac61d0ba180e42e8a6182b85bd785fcca8dfeefc1b"
+  name = "github.com/joho/godotenv"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "23d116af351c84513e1946b527c88823e476be13"
+  version = "v1.3.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:598aa4555d1ea05a7b949e31e7db0e7b2df21f8772c53cc42f6543dc6bf9a35a"
+  name = "github.com/markbates/oncer"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "05fccaae8fc423476d98fd4c3e4699ba0fbbde48"
 
 [[projects]]
   digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
@@ -19,22 +51,22 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:cd638908d04442c8b6afd5d0221c21556e76c5e7130448ca97d249b47d66dd41"
+  digest = "1:89cf776c0a621a34017c819b66b9e0f0bb076d3c5b9ca74763fb89570e140038"
   name = "github.com/rubenv/sql-migrate"
   packages = [
     ".",
     "sqlparse",
   ]
   pruneopts = "UT"
-  revision = "3f452fc0ebebbb784fdab91f7bc79a31dcacab5c"
+  revision = "ba2c6a7295c59448dbc195cef2f41df5163b3892"
 
 [[projects]]
-  digest = "1:fa9a7c0ef59217bd22f32eb7cc027894d73f340a5633258cc079dec025db6a7f"
+  digest = "1:1b36b0cb56126316f637ad55cfd5ed84c945fe45bd90e944666b4107a80a1da9"
   name = "gopkg.in/gorp.v1"
   packages = ["."]
   pruneopts = "UT"
-  revision = "c87af80f3cc5036b55b83d77171e156791085e2e"
-  version = "v1.7.1"
+  revision = "6a667da9c028871f98598d85413e3fc4c6daa52e"
+  version = "v1.7.2"
 
 [solve-meta]
   analyzer-name = "dep"

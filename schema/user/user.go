@@ -3,6 +3,8 @@ package user
 import (
 	"time"
 
+	"github.com/mimir-news/pkg/id"
+
 	"github.com/mimir-news/pkg/schema/stock"
 )
 
@@ -12,6 +14,16 @@ type User struct {
 	Email      string      `json:"email"`
 	Watchlists []Watchlist `json:"watchlists"`
 	CreatedAt  time.Time   `json:"createdAt"`
+}
+
+// New creates a new user.
+func New(email string, watchlists []Watchlist) User {
+	return User{
+		ID:         id.New(),
+		Email:      email,
+		Watchlists: watchlists,
+		CreatedAt:  time.Now().UTC(),
+	}
 }
 
 // Credentials login credentials provided by a user.
