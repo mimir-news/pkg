@@ -16,10 +16,41 @@ const (
 	UserIDKey       = "X-User-ID"
 )
 
+// Options options for configuring authentication middleware.
+type Options struct {
+	Secret          string
+	VerificationKey string
+	ExemptedRoutes  []string
+}
+
+// NewOptions sets up new auth options with optional exmpted routes.
+func NewOptions(secret, verificationKey string, exemptedRoutes ...string) *Options {
+	return &Options{
+		Secret:          secret,
+		VerificationKey: verificationKey,
+		ExemptedRoutes:  exemptedRoutes,
+	}
+}
+
+func (opts *Options) exemptedRoutesSet() map[string]bool {
+	routesSet := make(map[string]bool)
+	for _, route := range opts.ExemptedRoutes {
+		routesSet[route] = true
+	}
+	return routesSet
+}
+
 // RequireToken adds token verification ahead of serving requests.
-func RequireToken(secret, verificationKey string) gin.HandlerFunc {
-	verifier := NewVerifier(secret, verificationKey)
+func RequireToken(opts *Options) gin.HandlerFunc {
+	verifier := NewVerifier(opts.Secret, opts.VerificationKey)
+	exemptedRoutes := opts.exemptedRoutesSet()
+
 	return func(c *gin.Context) {
+		if _, ok := exemptedRoutes[c.Request.URL.Path]; ok {
+			c.Next()
+			return
+		}
+
 		encodedToken, err := getAuthToken(c)
 		if err != nil {
 			httputil.SendError(err, c)
@@ -44,19 +75,6 @@ func RequireToken(secret, verificationKey string) gin.HandlerFunc {
 	}
 }
 
-func getAuthToken(c *gin.Context) (string, *httputil.Error) {
-	authHeader := c.GetHeader(AuthHeaderKey)
-	if authHeader == "" {
-		return "", httputil.ErrUnauthorized()
-	}
-
-	if !strings.HasPrefix(authHeader, AuthTokenPrefix) {
-		return "", httputil.ErrUnauthorized()
-	}
-
-	return strings.Replace(authHeader, AuthTokenPrefix, "", 1), nil
-}
-
 // SetContextUserID sets the userID of the client that initated the request.
 func SetContextUserID(c *gin.Context, userID string) {
 	if userID != "" {
@@ -71,4 +89,17 @@ func GetUserID(c *gin.Context) (string, error) {
 		return "", httputil.NewError("UserID missing", http.StatusInternalServerError)
 	}
 	return userID, nil
+}
+
+func getAuthToken(c *gin.Context) (string, *httputil.Error) {
+	authHeader := c.GetHeader(AuthHeaderKey)
+	if authHeader == "" {
+		return "", httputil.ErrUnauthorized()
+	}
+
+	if !strings.HasPrefix(authHeader, AuthTokenPrefix) {
+		return "", httputil.ErrUnauthorized()
+	}
+
+	return strings.Replace(authHeader, AuthTokenPrefix, "", 1), nil
 }
