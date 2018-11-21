@@ -34,7 +34,20 @@ type Credentials struct {
 
 // Watchlist named list of stocks.
 type Watchlist struct {
+	ID        string        `json:"id"`
 	Name      string        `json:"name"`
 	Stocks    []stock.Stock `json:"stocks"`
 	CreatedAt time.Time     `json:"createdAt"`
+}
+
+// Token holds encoded user tokens.
+type Token struct {
+	Token string `json:"name"`
+}
+
+// NewToken creates a new token.
+func NewToken(tokenBody string) Token {
+	return Token{
+		Token: tokenBody,
+	}
 }
