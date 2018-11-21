@@ -10,6 +10,11 @@ import (
 	migrate "github.com/rubenv/sql-migrate"
 )
 
+// Common errors.
+var (
+	ErrFailedInsert = errors.New("Insert failed")
+)
+
 // Config configuration for connection to a database.
 type Config struct {
 	Host     string `env:"HOST"`
