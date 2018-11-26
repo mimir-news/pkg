@@ -72,7 +72,7 @@ type Verifier interface {
 
 // NewVerifier creates a new verifier.
 func NewVerifier(secret, verificationKey string) Verifier {
-	hasher := Sha3Hasher{Uppercase: false}
+	hasher := &Sha3Hasher{Uppercase: false}
 	hashedSecret, _ := hasher.Hash(secret)
 	hashedKey, _ := hasher.Hash(verificationKey)
 
@@ -80,6 +80,7 @@ func NewVerifier(secret, verificationKey string) Verifier {
 		decryptor:        NewAESDecryptor(),
 		secretHash:       hashedSecret,
 		verificationHash: hashedKey,
+		hasher:           hasher,
 	}
 }
 
@@ -87,6 +88,7 @@ type aesVerifier struct {
 	decryptor        *AESDecryptor
 	secretHash       string
 	verificationHash string
+	hasher           *Sha3Hasher
 }
 
 func (v *aesVerifier) Verify(clientID, rawToken string) (Token, error) {
@@ -116,7 +118,8 @@ func (v *aesVerifier) checkTokenValidity(token Token, clientID string) error {
 		return ErrInvalidToken
 	}
 
-	if token.Body.VerificationHash != v.verificationHash {
+	expectedHash, _ := v.hasher.Hash(v.verificationHash + token.ID)
+	if token.Body.VerificationHash != expectedHash {
 		return ErrInvalidToken
 	}
 
@@ -151,7 +154,7 @@ type Signer interface {
 
 // NewSigner creates a new signer.
 func NewSigner(secret, verificationKey string, tokenAge time.Duration) Signer {
-	hasher := Sha3Hasher{Uppercase: false}
+	hasher := &Sha3Hasher{Uppercase: false}
 	hashedSecret, _ := hasher.Hash(secret)
 	hashedKey, _ := hasher.Hash(verificationKey)
 
@@ -160,6 +163,7 @@ func NewSigner(secret, verificationKey string, tokenAge time.Duration) Signer {
 		secretHash:       hashedSecret,
 		verificationHash: hashedKey,
 		tokenAge:         tokenAge,
+		hasher:           hasher,
 	}
 }
 
@@ -168,6 +172,7 @@ type aesSigner struct {
 	secretHash       string
 	verificationHash string
 	tokenAge         time.Duration
+	hasher           *Sha3Hasher
 }
 
 func (s *aesSigner) New(subject, clientID string) (string, error) {
@@ -185,6 +190,8 @@ func (s *aesSigner) New(subject, clientID string) (string, error) {
 
 func (s *aesSigner) newToken(subject, clientID string) Token {
 	tokenID := id.New()
+	verificationHash, _ := s.hasher.Hash(s.verificationHash + tokenID)
+
 	return Token{
 		ID:      tokenID,
 		Version: V1,
@@ -193,7 +200,7 @@ func (s *aesSigner) newToken(subject, clientID string) Token {
 			ExpiresAt:        now().Add(s.tokenAge).UnixNano(),
 			TokenID:          tokenID,
 			ClientID:         clientID,
-			VerificationHash: s.verificationHash,
+			VerificationHash: verificationHash,
 		},
 	}
 }

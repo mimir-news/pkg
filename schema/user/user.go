@@ -51,3 +51,10 @@ func NewToken(tokenBody string) Token {
 		Token: tokenBody,
 	}
 }
+
+// PasswordChange describes a password change.
+type PasswordChange struct {
+	New      string      `json:"new"`
+	Repeated string      `json:"repeated"`
+	Old      Credentials `json:"old"`
+}
