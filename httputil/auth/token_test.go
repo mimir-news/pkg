@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/mimir-news/pkg/httputil/auth"
+	"github.com/mimir-news/pkg/id"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSignAndVerify(t *testing.T) {
@@ -18,7 +18,7 @@ func TestSignAndVerify(t *testing.T) {
 
 	signer := auth.NewSigner(secret, verificationKey, tokenAge)
 
-	encrypted, err := signer.New(subject, clientID)
+	encrypted, err := signer.New(id.New(), subject, clientID)
 	if err != nil {
 		t.Fatal("Failed to sign token:", err)
 	}
@@ -48,7 +48,7 @@ func TestSignAndVerify_wrongClientID(t *testing.T) {
 
 	signer := auth.NewSigner(secret, verificationKey, tokenAge)
 
-	encrypted, err := signer.New(subject, clientID)
+	encrypted, err := signer.New(id.New(), subject, clientID)
 	assert.Nil(t, err)
 
 	verifier := auth.NewVerifier(secret, verificationKey)
@@ -65,7 +65,7 @@ func TestSignAndVerify_expiredToken(t *testing.T) {
 	tokenAge := -5 * time.Minute
 
 	signer := auth.NewSigner(secret, verificationKey, tokenAge)
-	encrypted, err := signer.New(subject, clientID)
+	encrypted, err := signer.New(id.New(), subject, clientID)
 	assert.Nil(t, err)
 
 	verifier := auth.NewVerifier(secret, verificationKey)
@@ -84,7 +84,7 @@ func TestSignAndVerify_wrongVerifier(t *testing.T) {
 	tokenAge := 10 * time.Minute
 
 	signer := auth.NewSigner(secret, verificationKey, tokenAge)
-	encrypted, err := signer.New(subject, clientID)
+	encrypted, err := signer.New(id.New(), subject, clientID)
 	assert.Nil(t, err)
 
 	verifier := auth.NewVerifier("other-secret", verificationKey)

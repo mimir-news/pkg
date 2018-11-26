@@ -11,6 +11,7 @@ import (
 
 	"github.com/mimir-news/pkg/httputil"
 	"github.com/mimir-news/pkg/httputil/auth"
+	"github.com/mimir-news/pkg/id"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,16 +25,16 @@ func TestRequireToken(t *testing.T) {
 	key := "test-verification-key"
 	tokenAge := 1 * time.Minute
 
-	okToken, err := auth.NewSigner(secret, key, tokenAge).New(subject, clientID)
+	okToken, err := auth.NewSigner(secret, key, tokenAge).New(id.New(), subject, clientID)
 	assert.Nil(err)
 
-	wrongSecretToken, err := auth.NewSigner("wrong", key, tokenAge).New(subject, clientID)
+	wrongSecretToken, err := auth.NewSigner("wrong", key, tokenAge).New(id.New(), subject, clientID)
 	assert.Nil(err)
 
-	wrongKeyToken, err := auth.NewSigner(secret, "wrong", tokenAge).New(subject, clientID)
+	wrongKeyToken, err := auth.NewSigner(secret, "wrong", tokenAge).New(id.New(), subject, clientID)
 	assert.Nil(err)
 
-	expiredToken, err := auth.NewSigner(secret, key, -2*time.Minute).New(subject, clientID)
+	expiredToken, err := auth.NewSigner(secret, key, -2*time.Minute).New(id.New(), subject, clientID)
 	assert.Nil(err)
 
 	tt := []struct {

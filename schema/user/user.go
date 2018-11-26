@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/mimir-news/pkg/id"
-
 	"github.com/mimir-news/pkg/schema/stock"
 )
 
@@ -14,6 +13,11 @@ type User struct {
 	Email      string      `json:"email"`
 	Watchlists []Watchlist `json:"watchlists"`
 	CreatedAt  time.Time   `json:"createdAt"`
+}
+
+// Valid checks if the contents of the user is valid.
+func (u User) Valid() bool {
+	return u.ID != "" && u.Email != ""
 }
 
 // New creates a new user.
@@ -30,6 +34,11 @@ func New(email string, watchlists []Watchlist) User {
 type Credentials struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+// Valid checks if the contents of the credentials are valid.
+func (c Credentials) Valid() bool {
+	return c.Email != "" && c.Password != "" && len(c.Password) > 9
 }
 
 // Watchlist named list of stocks.
@@ -57,4 +66,10 @@ type PasswordChange struct {
 	New      string      `json:"new"`
 	Repeated string      `json:"repeated"`
 	Old      Credentials `json:"old"`
+}
+
+// Valid checks if the contents of a password change are valid.
+func (c PasswordChange) Valid() bool {
+	return c.New != "" && c.Repeated != "" &&
+		len(c.New) > 9 && c.Old.Email != "" && c.Old.Password != ""
 }

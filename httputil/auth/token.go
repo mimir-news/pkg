@@ -6,14 +6,13 @@ import (
 	"errors"
 	"log"
 	"time"
-
-	"github.com/mimir-news/pkg/id"
 )
 
 // Common errors in token creation and verification.
 var (
+	ErrMissingTokenID  = errors.New("Missing token ID")
 	ErrMissingSubject  = errors.New("Missing subject")
-	ErrMissingClientID = errors.New("Missing clientID")
+	ErrMissingClientID = errors.New("Missing client ID")
 	ErrInvalidToken    = errors.New("Token is invalid")
 	ErrExpiredToken    = errors.New("Token has expired")
 )
@@ -149,7 +148,7 @@ func (v *aesVerifier) aesDecrypt(encryptedBody string, key []byte) (TokenBody, e
 
 // Signer interface for issuing and signing auth tokens.
 type Signer interface {
-	New(subject, clientID string) (string, error)
+	New(tokenID, subject, clientID string) (string, error)
 }
 
 // NewSigner creates a new signer.
@@ -175,7 +174,11 @@ type aesSigner struct {
 	hasher           *Sha3Hasher
 }
 
-func (s *aesSigner) New(subject, clientID string) (string, error) {
+func (s *aesSigner) New(tokenID, subject, clientID string) (string, error) {
+	if tokenID == "" {
+		return "", ErrMissingTokenID
+	}
+
 	if subject == "" {
 		return "", ErrMissingSubject
 	}
@@ -184,12 +187,11 @@ func (s *aesSigner) New(subject, clientID string) (string, error) {
 		return "", ErrMissingClientID
 	}
 
-	token := s.newToken(subject, clientID)
+	token := s.newToken(tokenID, subject, clientID)
 	return s.sign(token)
 }
 
-func (s *aesSigner) newToken(subject, clientID string) Token {
-	tokenID := id.New()
+func (s *aesSigner) newToken(tokenID, subject, clientID string) Token {
 	verificationHash, _ := s.hasher.Hash(s.verificationHash + tokenID)
 
 	return Token{
