@@ -15,9 +15,9 @@ var (
 	ErrFailedInsert = errors.New("Insert failed")
 )
 
-// Preparer interface for type capable of creating a prepared statement.
-type Preparer interface {
-	Prepare(query string) (*sql.Stmt, error)
+// Querier interface for quering rows.
+type Querier interface {
+	Query(query string, args ...interface{}) (*sql.Row, error)
 }
 
 // Config configuration for connection to a database.
