@@ -49,6 +49,16 @@ type Watchlist struct {
 	CreatedAt time.Time     `json:"createdAt"`
 }
 
+// NewWatchlist creates a new watchlist.
+func NewWatchlist(name string, stocks ...stock.Stock) Watchlist {
+	return Watchlist{
+		ID:        id.New(),
+		Name:      name,
+		Stocks:    stocks,
+		CreatedAt: time.Now().UTC(),
+	}
+}
+
 // Token holds encoded user tokens.
 type Token struct {
 	Token string `json:"name"`
