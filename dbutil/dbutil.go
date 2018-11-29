@@ -17,7 +17,7 @@ var (
 
 // Querier interface for quering rows.
 type Querier interface {
-	Query(query string, args ...interface{}) (*sql.Row, error)
+	Query(query string, args ...interface{}) (*sql.Rows, error)
 }
 
 // Config configuration for connection to a database.
