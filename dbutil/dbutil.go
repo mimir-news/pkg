@@ -15,6 +15,11 @@ var (
 	ErrFailedInsert = errors.New("Insert failed")
 )
 
+// Preparer interface for type capable of creating a prepared statement.
+type Preparer interface {
+	Prepare(query string) (*sql.Stmt, error)
+}
+
 // Config configuration for connection to a database.
 type Config struct {
 	Host     string `env:"HOST"`
