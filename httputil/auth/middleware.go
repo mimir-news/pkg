@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -59,7 +58,6 @@ func RequireToken(opts *Options) gin.HandlerFunc {
 		}
 
 		clientID := c.GetHeader(ClientIDKey)
-		fmt.Println(clientID)
 		if clientID == "" {
 			httputil.SendError(httputil.ErrUnauthorized(), c)
 			return

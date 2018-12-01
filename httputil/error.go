@@ -1,9 +1,7 @@
 package httputil
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -107,10 +105,6 @@ func newErrorResponse(err *Error, c *gin.Context) errorResponse {
 // SendError formats, logs and sends a response back to the client
 func SendError(err *Error, c *gin.Context) {
 	errResp := newErrorResponse(err, c)
-
-	jsonErr, _ := json.Marshal(errResp)
-	log.Println("ERROR:", string(jsonErr))
-
 	c.AbortWithStatusJSON(errResp.StatusCode, errResp)
 }
 
