@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -63,8 +62,6 @@ func (c Config) PgDSN() string {
 
 // Migrate runs database mirgrations.
 func Migrate(migrationsPath, driverName string, db *sql.DB) error {
-	printPath("./")
-	printPath(migrationsPath)
 	migrationSource := &migrate.FileMigrationSource{
 		Dir: migrationsPath,
 	}
@@ -84,17 +81,6 @@ func Migrate(migrationsPath, driverName string, db *sql.DB) error {
 		return fmt.Errorf("Error applying database migrations: %s", err)
 	}
 	return nil
-}
-
-func printPath(path string) {
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, f := range files {
-		fmt.Println(f.Name())
-	}
 }
 
 // AssertRowsAffected check that the expected number of rows where affected by a database operation.
