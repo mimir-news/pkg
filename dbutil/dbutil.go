@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"strings"
 
 	"github.com/gobuffalo/packr"
 	migrate "github.com/rubenv/sql-migrate"
@@ -22,12 +24,25 @@ type Querier interface {
 
 // Config configuration for connection to a database.
 type Config struct {
-	Host     string `env:"HOST"`
-	Port     string `env:"PORT" envDefault:"5432"`
-	Database string `env:"DATABASE"`
-	Username string `env:"USERNAME"`
-	Password string `env:"PASSWORD"`
-	SSLMode  bool   `env:"SSL_MODE" envDefault:"false"`
+	Host     string
+	Port     string
+	Database string
+	Username string
+	Password string
+	SSLMode  bool
+}
+
+// MustGetConfig gets database config from environment and
+// fails if required values are missing.
+func MustGetConfig(namespace string) Config {
+	return Config{
+		Host:     mustGetenv(namespace + "_HOST"),
+		Port:     getenv(namespace+"_PORT", "5432"),
+		Database: mustGetenv(namespace + "_NAME"),
+		Username: mustGetenv(namespace + "_USERNAME"),
+		Password: mustGetenv(namespace + "_PASSWORD"),
+		SSLMode:  getBoolEnv(namespace+"_SSL_MODE", false),
+	}
 }
 
 // ConnectPostgres connects to a postgres instance.
@@ -89,4 +104,31 @@ func RollbackTx(tx *sql.Tx) {
 	if err != nil {
 		log.Println(err)
 	}
+}
+
+func mustGetenv(key string) string {
+	val := os.Getenv(key)
+	if val == "" {
+		log.Fatalf("No value for key: %s\n", key)
+	}
+
+	return val
+}
+
+func getenv(key, defaultVal string) string {
+	val := os.Getenv(key)
+	if val == "" {
+		return defaultVal
+	}
+
+	return val
+}
+
+func getBoolEnv(key string, defaultVal bool) bool {
+	val := strings.ToLower(os.Getenv(key))
+	if val == "true" || val == "1" {
+		return true
+	}
+
+	return defaultVal
 }
