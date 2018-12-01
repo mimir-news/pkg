@@ -61,7 +61,7 @@ func NewWatchlist(name string, stocks ...stock.Stock) Watchlist {
 
 // Token holds encoded user tokens.
 type Token struct {
-	Token string `json:"name"`
+	Token string `json:"token"`
 }
 
 // NewToken creates a new token.
