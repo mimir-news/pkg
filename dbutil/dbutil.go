@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/gobuffalo/packr"
 	migrate "github.com/rubenv/sql-migrate"
@@ -29,7 +28,7 @@ type Config struct {
 	Database string
 	Username string
 	Password string
-	SSLMode  bool
+	SSLMode  string
 }
 
 // MustGetConfig gets database config from environment and
@@ -41,7 +40,7 @@ func MustGetConfig(namespace string) Config {
 		Database: mustGetenv(namespace + "_NAME"),
 		Username: mustGetenv(namespace + "_USERNAME"),
 		Password: mustGetenv(namespace + "_PASSWORD"),
-		SSLMode:  getBoolEnv(namespace+"_SSL_MODE", false),
+		SSLMode:  getenv(namespace+"_SSL_MODE", "disable"),
 	}
 }
 
@@ -58,7 +57,7 @@ func (c Config) ConnectPostgres() (*sql.DB, error) {
 
 // PgDSN creates datasource name for compliant with whats expected by postgres.
 func (c Config) PgDSN() string {
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%t",
+	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
 		c.Host, c.Username, c.Password, c.Database, c.Port, c.SSLMode)
 }
 
@@ -122,13 +121,4 @@ func getenv(key, defaultVal string) string {
 	}
 
 	return val
-}
-
-func getBoolEnv(key string, defaultVal bool) bool {
-	val := strings.ToLower(os.Getenv(key))
-	if val == "true" || val == "1" {
-		return true
-	}
-
-	return defaultVal
 }
