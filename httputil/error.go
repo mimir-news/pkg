@@ -84,7 +84,8 @@ func HandleErrors() gin.HandlerFunc {
 	}
 }
 
-type errorResponse struct {
+// ErrorResponse description of the error encountered during request handling.
+type ErrorResponse struct {
 	ErrorID    string `json:"errorId"`
 	RequestID  string `json:"requestId"`
 	Message    string `json:"message"`
@@ -92,8 +93,8 @@ type errorResponse struct {
 	StatusCode int    `json:"statusCode"`
 }
 
-func newErrorResponse(err *Error, c *gin.Context) errorResponse {
-	return errorResponse{
+func newErrorResponse(err *Error, c *gin.Context) ErrorResponse {
+	return ErrorResponse{
 		ErrorID:    err.ID,
 		RequestID:  GetRequestID(c),
 		Message:    err.Message,
