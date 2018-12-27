@@ -12,7 +12,8 @@ import (
 
 // Common errors.
 var (
-	ErrFailedInsert = errors.New("Insert failed")
+	ErrFailedInsert = errors.New("insert failed")
+	ErrNotConnected = errors.New("not connected to database")
 )
 
 // Querier interface for quering rows.
@@ -102,6 +103,17 @@ func RollbackTx(tx *sql.Tx) {
 	if err != nil {
 		log.Println(err)
 	}
+}
+
+// IsConnected checks that the client is connected to the database.
+func IsConnected(db *sql.DB) error {
+	rows, err := db.Query("SELECT 1")
+	if err != nil {
+		log.Println("ERROR -", err)
+		return ErrNotConnected
+	}
+	defer rows.Close()
+	return nil
 }
 
 func mustGetenv(key string) string {
