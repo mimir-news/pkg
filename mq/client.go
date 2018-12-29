@@ -51,7 +51,7 @@ type Client interface {
 	Close() error
 	Send(msg interface{}, exchange, queue string) error
 	Subscribe(queue, client string) (chan Message, error)
-	IsConnected() bool
+	Connected() bool
 }
 
 // AMQPClient client implemenation for the AMQP protocol.
@@ -135,8 +135,8 @@ func (c *AMQPClient) Close() error {
 	return c.conn.Close()
 }
 
-// IsConnected return the connection state of the client.
-func (c *AMQPClient) IsConnected() bool {
+// Connected return the connection state of the client.
+func (c *AMQPClient) Connected() bool {
 	return c.connected
 }
 

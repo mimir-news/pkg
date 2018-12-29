@@ -101,6 +101,6 @@ func (c *MockClient) Subscribe(queue, client string) (chan mq.Message, error) {
 	return messageChannel, nil
 }
 
-func (c *MockClient) IsConnected() bool {
+func (c *MockClient) Connected() bool {
 	return !c.failConnected
 }
