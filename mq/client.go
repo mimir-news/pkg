@@ -51,13 +51,15 @@ type Client interface {
 	Close() error
 	Send(msg interface{}, exchange, queue string) error
 	Subscribe(queue, client string) (chan Message, error)
+	IsConnected() bool
 }
 
 // AMQPClient client implemenation for the AMQP protocol.
 type AMQPClient struct {
-	url     string
-	conn    *amqp.Connection
-	channel *amqp.Channel
+	url       string
+	conn      *amqp.Connection
+	channel   *amqp.Channel
+	connected bool
 }
 
 // NewClient creates a new MQ client.
@@ -72,10 +74,13 @@ func NewClient(conf Config) (Client, error) {
 	}
 
 	client := &AMQPClient{
-		url:     conf.URI(),
-		conn:    conn,
-		channel: ch,
+		url:       conf.URI(),
+		conn:      conn,
+		channel:   ch,
+		connected: true,
 	}
+
+	go client.registerDisconnects()
 	return client, nil
 }
 
@@ -128,4 +133,23 @@ func (c *AMQPClient) Close() error {
 		log.Printf("Failed to close channel: %s", err.Error())
 	}
 	return c.conn.Close()
+}
+
+// IsConnected return the connection state of the client.
+func (c *AMQPClient) IsConnected() bool {
+	return c.connected
+}
+
+func (c *AMQPClient) registerDisconnects() {
+	closeNotification := c.conn.NotifyClose(make(chan *amqp.Error))
+
+	for err := range closeNotification {
+		if err == nil {
+			continue
+		}
+
+		log.Println("ERROR -", err)
+		c.connected = false
+	}
+	close(closeNotification)
 }

@@ -1,4 +1,4 @@
-package mqtest 
+package mqtest
 
 import (
 	"encoding/json"
@@ -50,6 +50,7 @@ type MockClient struct {
 	failClose     bool
 	failSend      bool
 	failSubscribe bool
+	failConnected bool
 }
 
 func NewMockClient(messages []MockMessage, failClose, failSend, failSubscribe bool) mq.Client {
@@ -58,6 +59,7 @@ func NewMockClient(messages []MockMessage, failClose, failSend, failSubscribe bo
 		failClose:     failClose,
 		failSend:      failSend,
 		failSubscribe: failSubscribe,
+		failConnected: false,
 	}
 }
 
@@ -67,6 +69,7 @@ func NewSuccessMockClient(messages []MockMessage) mq.Client {
 		failClose:     false,
 		failSend:      false,
 		failSubscribe: false,
+		failConnected: false,
 	}
 }
 
@@ -96,4 +99,8 @@ func (c *MockClient) Subscribe(queue, client string) (chan mq.Message, error) {
 		}
 	}()
 	return messageChannel, nil
+}
+
+func (c *MockClient) IsConnected() bool {
+	return !c.failConnected
 }
