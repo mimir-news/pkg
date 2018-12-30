@@ -63,7 +63,7 @@ type AMQPClient struct {
 }
 
 // NewClient creates a new MQ client.
-func NewClient(conf Config) (Client, error) {
+func NewClient(conf Config, healthTarget string) (Client, error) {
 	conn, err := amqp.Dial(conf.URI())
 	if err != nil {
 		return nil, err
@@ -77,10 +77,9 @@ func NewClient(conf Config) (Client, error) {
 		url:          conf.URI(),
 		conn:         conn,
 		channel:      ch,
-		healthTarget: "q-health-newsranker",
+		healthTarget: healthTarget,
 	}
 
-	//go client.registerDisconnects()
 	return client, nil
 }
 
@@ -144,18 +143,4 @@ func (c *AMQPClient) Connected() bool {
 	}
 
 	return true
-}
-
-func (c *AMQPClient) registerDisconnects() {
-	closeNotification := c.conn.NotifyClose(make(chan *amqp.Error))
-	defer close(closeNotification)
-
-	for err := range closeNotification {
-		if err == nil {
-			continue
-		}
-
-		log.Println("ERROR -", err)
-		//c.connected = false
-	}
 }
