@@ -23,24 +23,26 @@ type Querier interface {
 
 // Config configuration for connection to a database.
 type Config struct {
-	Host     string
-	Port     string
-	Database string
-	Username string
-	Password string
-	SSLMode  string
+	Host            string
+	Port            string
+	Database        string
+	Username        string
+	Password        string
+	SSLMode         string
+	BinaryParamters string
 }
 
 // MustGetConfig gets database config from environment and
 // fails if required values are missing.
 func MustGetConfig(namespace string) Config {
 	return Config{
-		Host:     mustGetenv(namespace + "_HOST"),
-		Port:     getenv(namespace+"_PORT", "5432"),
-		Database: mustGetenv(namespace + "_NAME"),
-		Username: mustGetenv(namespace + "_USERNAME"),
-		Password: mustGetenv(namespace + "_PASSWORD"),
-		SSLMode:  getenv(namespace+"_SSL_MODE", "disable"),
+		Host:            mustGetenv(namespace + "_HOST"),
+		Port:            getenv(namespace+"_PORT", "5432"),
+		Database:        mustGetenv(namespace + "_NAME"),
+		Username:        mustGetenv(namespace + "_USERNAME"),
+		Password:        mustGetenv(namespace + "_PASSWORD"),
+		SSLMode:         getenv(namespace+"_SSL_MODE", "disable"),
+		BinaryParamters: getenv(namespace+"_BINARY_PARAMETERS", "no"),
 	}
 }
 
@@ -57,8 +59,8 @@ func (c Config) ConnectPostgres() (*sql.DB, error) {
 
 // PgDSN creates datasource name for compliant with whats expected by postgres.
 func (c Config) PgDSN() string {
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-		c.Host, c.Username, c.Password, c.Database, c.Port, c.SSLMode)
+	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s binary_parameters=%s",
+		c.Host, c.Username, c.Password, c.Database, c.Port, c.SSLMode, c.BinaryParamters)
 }
 
 // Migrate runs database mirgrations.
