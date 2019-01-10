@@ -63,8 +63,8 @@ type AMQPClient struct {
 }
 
 // NewClient creates a new MQ client.
-func NewClient(conf Config, healthTarget string) (Client, error) {
-	conn, err := amqp.Dial(conf.URI())
+func NewClient(cfg Config, healthTarget string) (Client, error) {
+	conn, err := amqp.Dial(cfg.URI())
 	if err != nil {
 		return nil, err
 	}
@@ -73,8 +73,13 @@ func NewClient(conf Config, healthTarget string) (Client, error) {
 		return nil, err
 	}
 
+	err = ch.Qos(cfg.prefetchCount, 0, false)
+	if err != nil {
+		return nil, err
+	}
+
 	client := &AMQPClient{
-		url:          conf.URI(),
+		url:          cfg.URI(),
 		conn:         conn,
 		channel:      ch,
 		healthTarget: healthTarget,

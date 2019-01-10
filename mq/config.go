@@ -4,19 +4,21 @@ import "fmt"
 
 // Config holds configuraiton info needed for establishing an mq connection.
 type Config struct {
-	host     string
-	port     string
-	user     string
-	password string
+	host          string
+	port          string
+	user          string
+	password      string
+	prefetchCount int
 }
 
 // NewConfig creates a new config.
-func NewConfig(host, port, user, password string) Config {
+func NewConfig(host, port, user, password string, prefetchCount int) Config {
 	return Config{
-		host:     host,
-		port:     port,
-		user:     user,
-		password: password,
+		host:          host,
+		port:          port,
+		user:          user,
+		password:      password,
+		prefetchCount: prefetchCount,
 	}
 }
 
