@@ -14,7 +14,6 @@ import (
 var (
 	ErrMissingTokenID   = errors.New("Missing token ID")
 	ErrMissingSubject   = errors.New("Missing subject")
-	ErrMissingClientID  = errors.New("Missing client ID")
 	ErrInvalidToken     = errors.New("Token is invalid")
 	ErrExpiredToken     = errors.New("Token has expired")
 	ErrNotYetValidToken = errors.New("Token is not yet valid")
@@ -37,23 +36,25 @@ type User struct {
 	Role string `json:"role"`
 }
 
-// Token contains subject and metadata required
-// to securly authenticate a subject.
+// Token contains ID and role of a user.
 type Token struct {
 	ID   string `json:"id"`
 	User User   `json:"user"`
 }
 
+// Verifier interface for verifying string token.
 type Verifier interface {
 	Verify(rawToken string) (Token, error)
 }
 
+// jwtVerifier implementation of the verifier interface for dealing with JWT tokens.
 type jwtVerifier struct {
 	secret         []byte
 	expectedIssuer string
 	leeway         time.Duration
 }
 
+// NewVerifier creates a new Verifier using the default implementation.
 func NewVerifier(issuer, secret string, leeway time.Duration) Verifier {
 	return &jwtVerifier{
 		secret:         []byte(secret),
@@ -62,6 +63,7 @@ func NewVerifier(issuer, secret string, leeway time.Duration) Verifier {
 	}
 }
 
+// Verify verifies a encoded JWT token.
 func (v *jwtVerifier) Verify(rawToken string) (Token, error) {
 	token, err := jwt.ParseSigned(rawToken) // test sending invalid tokens
 	if err != nil {
@@ -81,17 +83,34 @@ func (v *jwtVerifier) Verify(rawToken string) (Token, error) {
 		return emptyToken, ErrInvalidToken
 	}
 
-	err = claims.ValidateWithLeeway(jwt.Expected{Issuer: v.expectedIssuer}, v.leeway)
-	if err != nil {
-		return emptyToken, ErrInvalidToken
-	}
-
-	err = v.checkTokenExpiry(claims)
+	err = v.validateClaims(claims)
 	if err != nil {
 		return emptyToken, err
 	}
 
 	return getTokenFromClaims(claims, customClaims), nil
+}
+
+func (v *jwtVerifier) validateClaims(claims jwt.Claims) error {
+	err := claims.ValidateWithLeeway(jwt.Expected{Issuer: v.expectedIssuer}, v.leeway)
+	if err != nil {
+		return ErrInvalidToken
+	}
+
+	err = v.checkTokenExpiry(claims)
+	if err != nil {
+		return err
+	}
+
+	if claims.Subject == "" {
+		return ErrMissingSubject
+	}
+
+	if claims.ID == "" {
+		return ErrMissingTokenID
+	}
+
+	return nil
 }
 
 func (v *jwtVerifier) checkTokenExpiry(claims jwt.Claims) error {
@@ -129,6 +148,7 @@ type Signer interface {
 	Sign(tokenID string, user User) (string, error)
 }
 
+// NewSigner creates a new signer using the default implementation.
 func NewSigner(issuer, secret string, tokenAge time.Duration) Signer {
 	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: []byte(secret)}, nil)
 	if err != nil {
@@ -151,6 +171,11 @@ type jwtSigner struct {
 
 // Sign creates a new signed JWT token.
 func (s *jwtSigner) Sign(tokenID string, user User) (string, error) {
+	err := s.verifyTokenContent(tokenID, user)
+	if err != nil {
+		return "", err
+	}
+
 	now := time.Now().UTC()
 	claims := jwt.Claims{
 		Subject:   user.ID,
@@ -162,4 +187,15 @@ func (s *jwtSigner) Sign(tokenID string, user User) (string, error) {
 	}
 	customClaims := customJwtClaims{Role: user.Role}
 	return jwt.Signed(s.signer).Claims(claims).Claims(customClaims).CompactSerialize()
+}
+
+func (s *jwtSigner) verifyTokenContent(tokenID string, user User) error {
+	if tokenID == "" {
+		return ErrMissingTokenID
+	}
+	if user.ID == "" {
+		return ErrMissingSubject
+	}
+
+	return nil
 }

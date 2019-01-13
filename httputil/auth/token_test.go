@@ -45,6 +45,12 @@ func TestSignAndVerifyJWT(t *testing.T) {
 	verifier = auth.NewVerifier("wrong-issuer", "wrong-secret", 0)
 	_, err = verifier.Verify(tokenString)
 	assert.Equal(t, auth.ErrInvalidToken, err)
+
+	_, err = signer.Sign(tokenID, auth.User{Role: auth.UserRole})
+	assert.Equal(t, auth.ErrMissingSubject, err)
+
+	_, err = signer.Sign("", user)
+	assert.Equal(t, auth.ErrMissingTokenID, err)
 }
 
 func TestSignAndVerify_expiredJWT(t *testing.T) {
