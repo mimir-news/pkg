@@ -12,8 +12,10 @@ type HealthCheck func() error
 
 // NewRouter creates a default router.
 func NewRouter(name, version string, check HealthCheck) *gin.Engine {
-	r := gin.Default()
+	r := gin.New()
 	r.Use(
+		Logger(),
+		gin.Recovery(),
 		ServerInfo(name, version),
 		RequestID(),
 		HandleErrors())

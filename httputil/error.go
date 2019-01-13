@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"go.uber.org/zap"
+
 	"github.com/gin-gonic/gin"
 	"github.com/mimir-news/pkg/id"
 )
@@ -62,6 +64,7 @@ func (e *Error) Error() string {
 // HandleErrors wrapper function to deal with encountered errors
 // during request handling.
 func HandleErrors() gin.HandlerFunc {
+	logger := getNamedLogger("Error Handler").Sugar()
 	return func(c *gin.Context) {
 		c.Next()
 
@@ -80,8 +83,21 @@ func HandleErrors() gin.HandlerFunc {
 			break
 		}
 
+		logError(httpError, c, logger)
 		SendError(httpError, c)
 	}
+}
+
+func logError(err *Error, c *gin.Context, logger *zap.SugaredLogger) {
+	logFunc := logger.Errorw
+	if err.StatusCode < 500 {
+		logFunc = logger.Infow
+	}
+
+	logFunc(err.Message,
+		"status", err.StatusCode,
+		"errorId", err.ID,
+		"requestId", GetRequestID(c))
 }
 
 // ErrorResponse description of the error encountered during request handling.
