@@ -143,11 +143,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:63a14e646d94e2ae184411654ca4448992d21ca5b037c46c33c1e56d077e9fd0"
+  digest = "1:c97d5909750cc6d1921f52d725a60f6a75b39e4e8abddf852541e83bb36f0c8e"
   name = "golang.org/x/crypto"
   packages = [
     "bcrypt",
     "blowfish",
+    "ed25519",
+    "ed25519/internal/edwards25519",
+    "pbkdf2",
     "sha3",
   ]
   pruneopts = "UT"
@@ -170,6 +173,19 @@
   version = "v8.18.2"
 
 [[projects]]
+  digest = "1:a4cde1eec9a17eb2399a50c6e1a9fe3fde039994de058f9dbf6592d157bfe97b"
+  name = "gopkg.in/square/go-jose.v2"
+  packages = [
+    ".",
+    "cipher",
+    "json",
+    "jwt",
+  ]
+  pruneopts = "UT"
+  revision = "e94fb177d3668d35ab39c61cbb2f311550557e83"
+  version = "v2.2.2"
+
+[[projects]]
   digest = "1:342378ac4dcb378a5448dd723f0784ae519383532f5e70ade24132c4c8693202"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
@@ -187,6 +203,8 @@
     "go.uber.org/zap",
     "golang.org/x/crypto/bcrypt",
     "golang.org/x/crypto/sha3",
+    "gopkg.in/square/go-jose.v2",
+    "gopkg.in/square/go-jose.v2/jwt",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

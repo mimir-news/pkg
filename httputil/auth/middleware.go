@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mimir-news/pkg/httputil"
@@ -14,21 +15,22 @@ const (
 	AuthTokenPrefix = "Bearer "
 	ClientIDKey     = "X-Client-ID"
 	UserIDKey       = "X-User-ID"
+	UserRoleKey     = "X-User-Role"
 )
 
 // Options options for configuring authentication middleware.
 type Options struct {
-	Secret          string
-	VerificationKey string
-	ExemptedRoutes  []string
+	Issuer         string
+	Secret         string
+	ExemptedRoutes []string
 }
 
 // NewOptions sets up new auth options with optional exmpted routes.
-func NewOptions(secret, verificationKey string, exemptedRoutes ...string) *Options {
+func NewOptions(issuer, secret string, exemptedRoutes ...string) *Options {
 	return &Options{
-		Secret:          secret,
-		VerificationKey: verificationKey,
-		ExemptedRoutes:  exemptedRoutes,
+		Issuer:         issuer,
+		Secret:         secret,
+		ExemptedRoutes: exemptedRoutes,
 	}
 }
 
@@ -42,7 +44,7 @@ func (opts *Options) exemptedRoutesSet() map[string]bool {
 
 // RequireToken adds token verification ahead of serving requests.
 func RequireToken(opts *Options) gin.HandlerFunc {
-	verifier := NewVerifier(opts.Secret, opts.VerificationKey)
+	verifier := NewVerifier(opts.Issuer, opts.Secret, time.Minute)
 	exemptedRoutes := opts.exemptedRoutesSet()
 
 	return func(c *gin.Context) {
@@ -63,14 +65,15 @@ func RequireToken(opts *Options) gin.HandlerFunc {
 			return
 		}
 
-		token, verificationErr := verifier.Verify(clientID, encodedToken)
+		token, verificationErr := verifier.Verify(encodedToken)
 		if verificationErr != nil {
 			err = httputil.NewError(verificationErr.Error(), http.StatusUnauthorized)
 			httputil.SendError(err, c)
 			return
 		}
 
-		SetContextUserID(c, token.Body.Subject)
+		SetContextUserID(c, token.User.ID)
+		c.Set(UserRoleKey, token.User.Role)
 		c.Next()
 	}
 }

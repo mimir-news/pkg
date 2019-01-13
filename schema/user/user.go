@@ -10,6 +10,7 @@ import (
 // User holds data about an applicatoin user.
 type User struct {
 	ID         string      `json:"id"`
+	Role       string      `json:"role"`
 	Email      string      `json:"email"`
 	Watchlists []Watchlist `json:"watchlists"`
 	CreatedAt  time.Time   `json:"createdAt"`
@@ -21,9 +22,10 @@ func (u User) Valid() bool {
 }
 
 // New creates a new user.
-func New(email string, watchlists []Watchlist) User {
+func New(email, role string, watchlists []Watchlist) User {
 	return User{
 		ID:         id.New(),
+		Role:       role,
 		Email:      email,
 		Watchlists: watchlists,
 		CreatedAt:  time.Now().UTC(),
@@ -61,12 +63,13 @@ func NewWatchlist(name string, stocks ...stock.Stock) Watchlist {
 
 // Token holds encoded user tokens.
 type Token struct {
-	Token string `json:"token"`
-	User  User   `json:"user"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refreshToken"`
+	User         User   `json:"user"`
 }
 
 // NewToken creates a new token.
-func NewToken(tokenBody string, user User) Token {
+func NewToken(tokenBody, refreshToken string, user User) Token {
 	return Token{
 		Token: tokenBody,
 		User:  user,

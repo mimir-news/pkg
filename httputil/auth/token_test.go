@@ -9,93 +9,67 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSignAndVerify(t *testing.T) {
-	subject := "test-subject"
-	clientID := "test-client"
-	secret := "test-secret"
-	verificationKey := "test-key"
+func TestSignAndVerifyJWT(t *testing.T) {
+	secret := id.New()
+	issuer := id.New()
 	tokenAge := 10 * time.Minute
+	signer := auth.NewSigner(issuer, secret, tokenAge)
 
-	signer := auth.NewSigner(secret, verificationKey, tokenAge)
-
-	encrypted, err := signer.New(id.New(), subject, clientID)
-	if err != nil {
-		t.Fatal("Failed to sign token:", err)
+	tokenID := id.New()
+	user := auth.User{
+		ID:   id.New(),
+		Role: auth.UserRole,
 	}
+	tokenString, err := signer.Sign(tokenID, user)
+	assert.NoError(t, err)
+	assert.NotEqual(t, "", tokenString)
 
-	verifier := auth.NewVerifier(secret, verificationKey)
+	verifier := auth.NewVerifier(issuer, secret, 0)
+	token, err := verifier.Verify(tokenString)
+	assert.NoError(t, err)
+	assert.Equal(t, tokenID, token.ID)
+	assert.Equal(t, user.ID, token.User.ID)
+	assert.Equal(t, user.Role, token.User.Role)
 
-	decryptedToken, err := verifier.Verify("test-client", encrypted)
-	if err != nil {
-		t.Fatal("Failed to verify token:", err)
-	}
+	_, err = verifier.Verify("this.clearlyIsNot.aValidToken")
+	assert.Equal(t, auth.ErrInvalidToken, err)
 
-	assertV1Token(t, subject, clientID, decryptedToken)
-}
+	verifier = auth.NewVerifier(issuer, "wrong-secret", 0)
+	_, err = verifier.Verify(tokenString)
+	assert.Equal(t, auth.ErrInvalidToken, err)
 
-func assertV1Token(t *testing.T, subject, client string, token auth.Token) {
-	assert.Equal(t, auth.V1, token.Version)
-	assert.Equal(t, subject, token.Body.Subject)
-	assert.Equal(t, client, token.Body.ClientID)
-}
+	verifier = auth.NewVerifier("wrong-issuer", secret, 0)
+	_, err = verifier.Verify(tokenString)
+	assert.Equal(t, auth.ErrInvalidToken, err)
 
-func TestSignAndVerify_wrongClientID(t *testing.T) {
-	subject := "test-subject"
-	clientID := "test-client"
-	secret := "test-secret"
-	verificationKey := "test-key"
-	tokenAge := 10 * time.Minute
-
-	signer := auth.NewSigner(secret, verificationKey, tokenAge)
-
-	encrypted, err := signer.New(id.New(), subject, clientID)
-	assert.Nil(t, err)
-
-	verifier := auth.NewVerifier(secret, verificationKey)
-
-	_, err = verifier.Verify("wrong-client", encrypted)
+	verifier = auth.NewVerifier("wrong-issuer", "wrong-secret", 0)
+	_, err = verifier.Verify(tokenString)
 	assert.Equal(t, auth.ErrInvalidToken, err)
 }
 
-func TestSignAndVerify_expiredToken(t *testing.T) {
-	subject := "test-subject"
-	clientID := "test-client"
-	secret := "test-secret"
-	verificationKey := "test-key"
-	tokenAge := -5 * time.Minute
+func TestSignAndVerify_expiredJWT(t *testing.T) {
+	secret := id.New()
+	issuer := id.New()
+	tokenAge := 2 * time.Second
+	signer := auth.NewSigner(issuer, secret, tokenAge)
 
-	signer := auth.NewSigner(secret, verificationKey, tokenAge)
-	encrypted, err := signer.New(id.New(), subject, clientID)
-	assert.Nil(t, err)
-
-	verifier := auth.NewVerifier(secret, verificationKey)
-
-	_, err = verifier.Verify("test-client", encrypted)
-	if err != auth.ErrExpiredToken {
-		t.Fatal("Token should be teated as expired", err)
+	tokenID := id.New()
+	user := auth.User{
+		ID:   id.New(),
+		Role: auth.UserRole,
 	}
-}
+	tokenString, err := signer.Sign(tokenID, user)
+	assert.NoError(t, err)
+	assert.NotEqual(t, "", tokenString)
 
-func TestSignAndVerify_wrongVerifier(t *testing.T) {
-	subject := "test-subject"
-	clientID := "test-client"
-	secret := "test-secret"
-	verificationKey := "test-key"
-	tokenAge := 10 * time.Minute
+	verifier := auth.NewVerifier(issuer, secret, 0)
+	token, err := verifier.Verify(tokenString)
+	assert.NoError(t, err)
+	assert.Equal(t, tokenID, token.ID)
+	assert.Equal(t, user.ID, token.User.ID)
+	assert.Equal(t, user.Role, token.User.Role)
 
-	signer := auth.NewSigner(secret, verificationKey, tokenAge)
-	encrypted, err := signer.New(id.New(), subject, clientID)
-	assert.Nil(t, err)
-
-	verifier := auth.NewVerifier("other-secret", verificationKey)
-	_, err = verifier.Verify(clientID, encrypted)
-	assert.NotNil(t, err)
-
-	verifier = auth.NewVerifier(secret, "other-key")
-	_, err = verifier.Verify(clientID, encrypted)
-	assert.NotNil(t, err)
-
-	verifier = auth.NewVerifier("other-secret", "other-key")
-	_, err = verifier.Verify(clientID, encrypted)
-	assert.NotNil(t, err)
+	time.Sleep(3 * time.Second)
+	_, err = verifier.Verify(tokenString)
+	assert.Error(t, err)
 }

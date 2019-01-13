@@ -22,19 +22,20 @@ func TestRequireToken(t *testing.T) {
 	clientID := "test-client"
 	subject := "test-subject"
 	secret := "test-secret"
-	key := "test-verification-key"
+	issuer := "test-token-issuer"
+
 	tokenAge := 1 * time.Minute
 
-	okToken, err := auth.NewSigner(secret, key, tokenAge).New(id.New(), subject, clientID)
+	okToken, err := auth.NewSigner(issuer, secret, tokenAge).Sign(id.New(), auth.User{ID: subject, Role: auth.UserRole})
 	assert.Nil(err)
 
-	wrongSecretToken, err := auth.NewSigner("wrong", key, tokenAge).New(id.New(), subject, clientID)
+	wrongSecretToken, err := auth.NewSigner(issuer, "wrong", tokenAge).Sign(id.New(), auth.User{ID: subject, Role: auth.UserRole})
 	assert.Nil(err)
 
-	wrongKeyToken, err := auth.NewSigner(secret, "wrong", tokenAge).New(id.New(), subject, clientID)
+	wrongIssuerToken, err := auth.NewSigner("wrong", secret, tokenAge).Sign(id.New(), auth.User{ID: subject, Role: auth.UserRole})
 	assert.Nil(err)
 
-	expiredToken, err := auth.NewSigner(secret, key, -2*time.Minute).New(id.New(), subject, clientID)
+	expiredToken, err := auth.NewSigner(issuer, secret, -2*time.Minute).Sign(id.New(), auth.User{ID: subject, Role: auth.UserRole})
 	assert.Nil(err)
 
 	tt := []struct {
@@ -44,9 +45,8 @@ func TestRequireToken(t *testing.T) {
 		expectedStatus int
 	}{
 		{clientID: clientID, token: okToken, route: "/test", expectedStatus: http.StatusOK},
-		{clientID: "wrong-client", token: okToken, route: "/test", expectedStatus: http.StatusUnauthorized},
 		{clientID: clientID, token: wrongSecretToken, route: "/test", expectedStatus: http.StatusUnauthorized},
-		{clientID: clientID, token: wrongKeyToken, route: "/test", expectedStatus: http.StatusUnauthorized},
+		{clientID: clientID, token: wrongIssuerToken, route: "/test", expectedStatus: http.StatusUnauthorized},
 		{clientID: clientID, token: expiredToken, route: "/test", expectedStatus: http.StatusUnauthorized},
 		{token: okToken, route: "/test", expectedStatus: http.StatusUnauthorized},
 		{clientID: clientID, route: "/test", expectedStatus: http.StatusUnauthorized},
@@ -55,7 +55,7 @@ func TestRequireToken(t *testing.T) {
 	}
 
 	r := gin.New()
-	opts := auth.NewOptions(secret, key, "/exempted")
+	opts := auth.NewOptions(issuer, secret, "/exempted")
 	r.Use(auth.RequireToken(opts))
 	r.GET("/test", testHandler)
 	r.GET("/exempted", exemptedHandler)
