@@ -1,6 +1,8 @@
 package auth_test
 
 import (
+	"bytes"
+	"fmt"
 	"testing"
 	"time"
 
@@ -13,7 +15,7 @@ func TestSignAndVerifyJWT(t *testing.T) {
 	secret := id.New()
 	issuer := id.New()
 	tokenAge := 10 * time.Minute
-	signer := auth.NewSigner(issuer, secret, tokenAge)
+	signer := auth.NewSigner(auth.JWTCredentials{Issuer: issuer, Secret: secret}, tokenAge)
 
 	tokenID := id.New()
 	user := auth.User{
@@ -24,7 +26,7 @@ func TestSignAndVerifyJWT(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEqual(t, "", tokenString)
 
-	verifier := auth.NewVerifier(issuer, secret, 0)
+	verifier := auth.NewVerifier(auth.JWTCredentials{Issuer: issuer, Secret: secret}, 0)
 	token, err := verifier.Verify(tokenString)
 	assert.NoError(t, err)
 	assert.Equal(t, tokenID, token.ID)
@@ -34,15 +36,15 @@ func TestSignAndVerifyJWT(t *testing.T) {
 	_, err = verifier.Verify("this.clearlyIsNot.aValidToken")
 	assert.Equal(t, auth.ErrInvalidToken, err)
 
-	verifier = auth.NewVerifier(issuer, "wrong-secret", 0)
+	verifier = auth.NewVerifier(auth.JWTCredentials{Issuer: issuer, Secret: "wrong-secret"}, 0)
 	_, err = verifier.Verify(tokenString)
 	assert.Equal(t, auth.ErrInvalidToken, err)
 
-	verifier = auth.NewVerifier("wrong-issuer", secret, 0)
+	verifier = auth.NewVerifier(auth.JWTCredentials{Issuer: "wrong-issuer", Secret: secret}, 0)
 	_, err = verifier.Verify(tokenString)
 	assert.Equal(t, auth.ErrInvalidToken, err)
 
-	verifier = auth.NewVerifier("wrong-issuer", "wrong-secret", 0)
+	verifier = auth.NewVerifier(auth.JWTCredentials{Issuer: "wrong-issuer", Secret: "wrong-secret"}, 0)
 	_, err = verifier.Verify(tokenString)
 	assert.Equal(t, auth.ErrInvalidToken, err)
 
@@ -57,7 +59,7 @@ func TestSignAndVerify_expiredJWT(t *testing.T) {
 	secret := id.New()
 	issuer := id.New()
 	tokenAge := 2 * time.Second
-	signer := auth.NewSigner(issuer, secret, tokenAge)
+	signer := auth.NewSigner(auth.JWTCredentials{Issuer: issuer, Secret: secret}, tokenAge)
 
 	tokenID := id.New()
 	user := auth.User{
@@ -68,7 +70,7 @@ func TestSignAndVerify_expiredJWT(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEqual(t, "", tokenString)
 
-	verifier := auth.NewVerifier(issuer, secret, 0)
+	verifier := auth.NewVerifier(auth.JWTCredentials{Issuer: issuer, Secret: secret}, 0)
 	token, err := verifier.Verify(tokenString)
 	assert.NoError(t, err)
 	assert.Equal(t, tokenID, token.ID)
@@ -78,4 +80,17 @@ func TestSignAndVerify_expiredJWT(t *testing.T) {
 	time.Sleep(3 * time.Second)
 	_, err = verifier.Verify(tokenString)
 	assert.Error(t, err)
+}
+
+func TestReadJWTCredentials(t *testing.T) {
+	issuer := "test-issuer"
+	secret, err := auth.GenerateSalt()
+	assert.NoError(t, err)
+	credentialString := fmt.Sprintf("{\"issuer\":\"%s\",\"secret\":\"%s\"}", issuer, secret)
+	buffer := bytes.NewReader([]byte(credentialString))
+
+	creds, err := auth.ReadJWTCredentials(buffer)
+	assert.NoError(t, err)
+	assert.Equal(t, issuer, creds.Issuer)
+	assert.Equal(t, secret, creds.Secret)
 }

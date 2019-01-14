@@ -8,11 +8,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	"github.com/mimir-news/pkg/httputil"
 	"github.com/mimir-news/pkg/httputil/auth"
 	"github.com/mimir-news/pkg/id"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,16 +24,16 @@ func TestRequireToken(t *testing.T) {
 
 	tokenAge := 1 * time.Minute
 
-	okToken, err := auth.NewSigner(issuer, secret, tokenAge).Sign(id.New(), auth.User{ID: subject, Role: auth.UserRole})
+	okToken, err := auth.NewSigner(auth.JWTCredentials{Issuer: issuer, Secret: secret}, tokenAge).Sign(id.New(), auth.User{ID: subject, Role: auth.UserRole})
 	assert.Nil(err)
 
-	wrongSecretToken, err := auth.NewSigner(issuer, "wrong", tokenAge).Sign(id.New(), auth.User{ID: subject, Role: auth.UserRole})
+	wrongSecretToken, err := auth.NewSigner(auth.JWTCredentials{Issuer: issuer, Secret: "wrong"}, tokenAge).Sign(id.New(), auth.User{ID: subject, Role: auth.UserRole})
 	assert.Nil(err)
 
-	wrongIssuerToken, err := auth.NewSigner("wrong", secret, tokenAge).Sign(id.New(), auth.User{ID: subject, Role: auth.UserRole})
+	wrongIssuerToken, err := auth.NewSigner(auth.JWTCredentials{Issuer: "wrong", Secret: secret}, tokenAge).Sign(id.New(), auth.User{ID: subject, Role: auth.UserRole})
 	assert.Nil(err)
 
-	expiredToken, err := auth.NewSigner(issuer, secret, -2*time.Minute).Sign(id.New(), auth.User{ID: subject, Role: auth.UserRole})
+	expiredToken, err := auth.NewSigner(auth.JWTCredentials{Issuer: issuer, Secret: secret}, -2*time.Minute).Sign(id.New(), auth.User{ID: subject, Role: auth.UserRole})
 	assert.Nil(err)
 
 	tt := []struct {
@@ -55,7 +53,7 @@ func TestRequireToken(t *testing.T) {
 	}
 
 	r := gin.New()
-	opts := auth.NewOptions(issuer, secret, "/exempted")
+	opts := auth.NewOptions(auth.JWTCredentials{Issuer: issuer, Secret: secret}, "/exempted")
 	r.Use(auth.RequireToken(opts))
 	r.GET("/test", testHandler)
 	r.GET("/exempted", exemptedHandler)

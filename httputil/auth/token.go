@@ -1,8 +1,10 @@
 package auth
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"time"
 
@@ -20,7 +22,8 @@ var (
 )
 
 var (
-	emptyToken = Token{}
+	emptyToken       = Token{}
+	emptyCredentials = JWTCredentials{}
 )
 
 // User roles.
@@ -42,6 +45,19 @@ type Token struct {
 	User User   `json:"user"`
 }
 
+// JWTCredentials credentials to issue and verify JWT tokens.
+type JWTCredentials struct {
+	Issuer string `json:"issuer"`
+	Secret string `json:"secret"`
+}
+
+// ReadJWTCredentials reads JWTCredentials from an io.Reader.
+func ReadJWTCredentials(r io.Reader) (JWTCredentials, error) {
+	var credentials JWTCredentials
+	err := json.NewDecoder(r).Decode(&credentials)
+	return credentials, err
+}
+
 // Verifier interface for verifying string token.
 type Verifier interface {
 	Verify(rawToken string) (Token, error)
@@ -55,10 +71,10 @@ type jwtVerifier struct {
 }
 
 // NewVerifier creates a new Verifier using the default implementation.
-func NewVerifier(issuer, secret string, leeway time.Duration) Verifier {
+func NewVerifier(creds JWTCredentials, leeway time.Duration) Verifier {
 	return &jwtVerifier{
-		secret:         []byte(secret),
-		expectedIssuer: issuer,
+		secret:         []byte(creds.Secret),
+		expectedIssuer: creds.Issuer,
 		leeway:         leeway,
 	}
 }
@@ -149,14 +165,14 @@ type Signer interface {
 }
 
 // NewSigner creates a new signer using the default implementation.
-func NewSigner(issuer, secret string, tokenAge time.Duration) Signer {
-	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: []byte(secret)}, nil)
+func NewSigner(creds JWTCredentials, tokenAge time.Duration) Signer {
+	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: []byte(creds.Secret)}, nil)
 	if err != nil {
 		log.Fatal("Failed to create jose.Signer. ", err)
 	}
 
 	return &jwtSigner{
-		issuer:   issuer,
+		issuer:   creds.Issuer,
 		signer:   signer,
 		tokenAge: tokenAge,
 	}

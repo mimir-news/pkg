@@ -20,16 +20,14 @@ const (
 
 // Options options for configuring authentication middleware.
 type Options struct {
-	Issuer         string
-	Secret         string
+	Credentials    JWTCredentials
 	ExemptedRoutes []string
 }
 
 // NewOptions sets up new auth options with optional exmpted routes.
-func NewOptions(issuer, secret string, exemptedRoutes ...string) *Options {
+func NewOptions(creds JWTCredentials, exemptedRoutes ...string) *Options {
 	return &Options{
-		Issuer:         issuer,
-		Secret:         secret,
+		Credentials:    creds,
 		ExemptedRoutes: exemptedRoutes,
 	}
 }
@@ -44,7 +42,7 @@ func (opts *Options) exemptedRoutesSet() map[string]bool {
 
 // RequireToken adds token verification ahead of serving requests.
 func RequireToken(opts *Options) gin.HandlerFunc {
-	verifier := NewVerifier(opts.Issuer, opts.Secret, time.Minute)
+	verifier := NewVerifier(opts.Credentials, time.Minute)
 	exemptedRoutes := opts.exemptedRoutesSet()
 
 	return func(c *gin.Context) {
