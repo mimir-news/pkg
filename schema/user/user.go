@@ -71,8 +71,9 @@ type Token struct {
 // NewToken creates a new token.
 func NewToken(tokenBody, refreshToken string, user User) Token {
 	return Token{
-		Token: tokenBody,
-		User:  user,
+		Token:        tokenBody,
+		RefreshToken: refreshToken,
+		User:         user,
 	}
 }
 
