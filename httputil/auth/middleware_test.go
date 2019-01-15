@@ -46,7 +46,6 @@ func TestRequireToken(t *testing.T) {
 		{clientID: clientID, token: wrongSecretToken, route: "/test", expectedStatus: http.StatusUnauthorized},
 		{clientID: clientID, token: wrongIssuerToken, route: "/test", expectedStatus: http.StatusUnauthorized},
 		{clientID: clientID, token: expiredToken, route: "/test", expectedStatus: http.StatusUnauthorized},
-		{token: okToken, route: "/test", expectedStatus: http.StatusUnauthorized},
 		{clientID: clientID, route: "/test", expectedStatus: http.StatusUnauthorized},
 		{route: "/test", expectedStatus: http.StatusUnauthorized},
 		{route: "/exempted", expectedStatus: http.StatusOK},

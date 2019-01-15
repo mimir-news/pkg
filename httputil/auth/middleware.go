@@ -58,12 +58,6 @@ func RequireToken(opts *Options) gin.HandlerFunc {
 			return
 		}
 
-		clientID := c.GetHeader(ClientIDKey)
-		if clientID == "" {
-			httputil.SendError(httputil.ErrUnauthorized(), c)
-			return
-		}
-
 		token, verificationErr := verifier.Verify(encodedToken)
 		if verificationErr != nil {
 			err = httputil.NewError(verificationErr.Error(), http.StatusUnauthorized)
