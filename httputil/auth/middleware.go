@@ -87,7 +87,7 @@ func GetUserID(c *gin.Context) (string, error) {
 
 // GetUserRole gets the user role set by auth middleware.
 func GetUserRole(c *gin.Context) (string, error) {
-	role := c.GetString(userIDKey)
+	role := c.GetString(userRoleKey)
 	if role == "" {
 		return "", httputil.NewError("UserRole missing", http.StatusInternalServerError)
 	}
@@ -110,7 +110,7 @@ func AllowRoles(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, _ := GetUserRole(c)
 		if _, ok := rolesSet[role]; !ok {
-			httputil.SendError(httputil.ErrUnauthorized(), c)
+			httputil.SendError(httputil.ErrForbidden(), c)
 			return
 		}
 
@@ -131,7 +131,7 @@ func DisallowRoles(roles ...string) gin.HandlerFunc {
 		}
 
 		if _, ok := rolesSet[role]; ok {
-			httputil.SendError(httputil.ErrUnauthorized(), c)
+			httputil.SendError(httputil.ErrForbidden(), c)
 			return
 		}
 

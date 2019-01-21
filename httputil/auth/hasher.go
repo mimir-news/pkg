@@ -13,7 +13,7 @@ import (
 )
 
 // DefualtBcryptCost default cost factor for bcrypt hashing.
-const DefualtBcryptCost = 12
+const DefualtBcryptCost = bcrypt.DefaultCost
 
 // Common errors related to hashing.
 var (

@@ -17,7 +17,6 @@ import (
 func TestRequireToken(t *testing.T) {
 	assert := assert.New(t)
 
-	clientID := "test-client"
 	subject := "test-subject"
 	secret := "test-secret"
 	issuer := "test-token-issuer"
@@ -37,16 +36,15 @@ func TestRequireToken(t *testing.T) {
 	assert.Nil(err)
 
 	tt := []struct {
-		clientID       string
 		token          string
 		route          string
 		expectedStatus int
 	}{
-		{clientID: clientID, token: okToken, route: "/test", expectedStatus: http.StatusOK},
-		{clientID: clientID, token: wrongSecretToken, route: "/test", expectedStatus: http.StatusUnauthorized},
-		{clientID: clientID, token: wrongIssuerToken, route: "/test", expectedStatus: http.StatusUnauthorized},
-		{clientID: clientID, token: expiredToken, route: "/test", expectedStatus: http.StatusUnauthorized},
-		{clientID: clientID, route: "/test", expectedStatus: http.StatusUnauthorized},
+		{token: okToken, route: "/test", expectedStatus: http.StatusOK},
+		{token: wrongSecretToken, route: "/test", expectedStatus: http.StatusUnauthorized},
+		{token: wrongIssuerToken, route: "/test", expectedStatus: http.StatusUnauthorized},
+		{token: expiredToken, route: "/test", expectedStatus: http.StatusUnauthorized},
+		{route: "/test", expectedStatus: http.StatusUnauthorized},
 		{route: "/test", expectedStatus: http.StatusUnauthorized},
 		{route: "/exempted", expectedStatus: http.StatusOK},
 	}
@@ -59,11 +57,123 @@ func TestRequireToken(t *testing.T) {
 
 	for i, tc := range tt {
 		testCase := fmt.Sprintf("RequireToken test: %d", i+1)
-		req := createTestRequest(t, tc.clientID, tc.token, tc.route)
+		req := createTestRequest(t, tc.token, tc.route)
 		recorder := performTestRequest(r, req)
 
 		assert.Equal(tc.expectedStatus, recorder.Code, testCase)
 	}
+}
+
+func TestAllowRoles(t *testing.T) {
+	assert := assert.New(t)
+
+	secret := "test-secret"
+	issuer := "test-token-issuer"
+	tokenAge := 1 * time.Minute
+	jwtCreds := auth.JWTCredentials{Issuer: issuer, Secret: secret}
+	signer := auth.NewSigner(jwtCreds, tokenAge)
+
+	r := httputil.NewRouter("allow-roles-test", "1.0", func() error {
+		return nil
+	})
+	r.Use(auth.RequireToken(auth.NewOptions(jwtCreds, "/health")))
+	roleFilter := auth.AllowRoles(auth.AdminRole)
+	r.GET("/test", roleFilter, httputil.SendOK)
+
+	req := createTestRequest(t, "", "/health")
+	res := performTestRequest(r, req)
+	assert.Equal(http.StatusOK, res.Code)
+
+	token, err := signer.Sign(id.New(), auth.User{
+		ID:   id.New(),
+		Role: auth.AdminRole,
+	})
+	assert.NoError(err)
+
+	req = createTestRequest(t, token, "/test")
+	res = performTestRequest(r, req)
+	assert.Equal(http.StatusOK, res.Code)
+
+	userToken, err := signer.Sign(id.New(), auth.User{
+		ID:   id.New(),
+		Role: auth.UserRole,
+	})
+	assert.NoError(err)
+
+	req = createTestRequest(t, userToken, "/test")
+	res = performTestRequest(r, req)
+	assert.Equal(http.StatusForbidden, res.Code)
+
+	anonymousToken, err := signer.Sign(id.New(), auth.User{
+		ID:   id.New(),
+		Role: auth.AnonymousRole,
+	})
+	assert.NoError(err)
+
+	req = createTestRequest(t, anonymousToken, "/test")
+	res = performTestRequest(r, req)
+	assert.Equal(http.StatusForbidden, res.Code)
+}
+
+func TestDisallowRoles(t *testing.T) {
+	assert := assert.New(t)
+
+	secret := "test-secret"
+	issuer := "test-token-issuer"
+	tokenAge := 1 * time.Minute
+	jwtCreds := auth.JWTCredentials{Issuer: issuer, Secret: secret}
+	signer := auth.NewSigner(jwtCreds, tokenAge)
+
+	r := httputil.NewRouter("allow-roles-test", "1.0", func() error {
+		return nil
+	})
+	r.Use(auth.RequireToken(auth.NewOptions(jwtCreds, "/health")))
+	roleFilter := auth.DisallowRoles(auth.AnonymousRole)
+	r.GET("/test", roleFilter, httputil.SendOK)
+
+	req := createTestRequest(t, "", "/health")
+	res := performTestRequest(r, req)
+	assert.Equal(http.StatusOK, res.Code)
+
+	token, err := signer.Sign(id.New(), auth.User{
+		ID:   id.New(),
+		Role: auth.AdminRole,
+	})
+	assert.NoError(err)
+
+	req = createTestRequest(t, token, "/test")
+	res = performTestRequest(r, req)
+	assert.Equal(http.StatusOK, res.Code)
+
+	userToken, err := signer.Sign(id.New(), auth.User{
+		ID:   id.New(),
+		Role: auth.UserRole,
+	})
+	assert.NoError(err)
+
+	req = createTestRequest(t, userToken, "/test")
+	res = performTestRequest(r, req)
+	assert.Equal(http.StatusOK, res.Code)
+
+	anonymousToken, err := signer.Sign(id.New(), auth.User{
+		ID:   id.New(),
+		Role: auth.AnonymousRole,
+	})
+	assert.NoError(err)
+
+	req = createTestRequest(t, anonymousToken, "/test")
+	res = performTestRequest(r, req)
+	assert.Equal(http.StatusForbidden, res.Code)
+
+	noRoleToken, err := signer.Sign(id.New(), auth.User{
+		ID:   id.New(),
+		Role: "",
+	})
+	assert.NoError(err)
+
+	req = createTestRequest(t, noRoleToken, "/test")
+	res = performTestRequest(r, req)
+	assert.Equal(http.StatusInternalServerError, res.Code)
 }
 
 func testHandler(c *gin.Context) {
@@ -86,13 +196,9 @@ func performTestRequest(r http.Handler, req *http.Request) *httptest.ResponseRec
 	return w
 }
 
-func createTestRequest(t *testing.T, clientID, token, route string) *http.Request {
+func createTestRequest(t *testing.T, token, route string) *http.Request {
 	req, err := http.NewRequest(http.MethodGet, route, nil)
-	assert.Nil(t, err)
-
-	if clientID != "" {
-		req.Header.Set(auth.ClientIDKey, clientID)
-	}
+	assert.NoError(t, err)
 	if token != "" {
 		bearerToken := auth.AuthTokenPrefix + token
 		req.Header.Set(auth.AuthHeaderKey, bearerToken)
